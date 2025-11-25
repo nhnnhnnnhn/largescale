@@ -3,9 +3,9 @@
 import type React from "react"
 
 import { useState, useMemo, useEffect } from "react"
-import { useSearchCarsMutation } from "@/store/services/carsApi"
+import { useSearchCarsMutation, useGetCarHistoryQuery } from "@/store/services/carsApi"
 import { useGetDealersQuery } from "@/store/services/dealersApi"
-import { transformCars } from "@/lib/transformers"
+import { transformCars, transformCarHistory } from "@/lib/transformers"
 import { Header } from "@/components/layout/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -69,6 +69,20 @@ export default function CarsPage() {
     // Selected Car State
     const [selectedCar, setSelectedCar] = useState<CarRecord | null>(null)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+    // Fetch car history when a car is selected
+    const { data: carHistoryData, isLoading: historyLoading } = useGetCarHistoryQuery(
+        selectedCar?.CarID || "",
+        { skip: !selectedCar }
+    )
+
+    // Transform car history with dealer info
+    const selectedCarWithHistory = useMemo(() => {
+        if (!selectedCar || !carHistoryData?.data || !dealersData?.data) return selectedCar
+        const dealersMap = new Map(dealersData.data.map((d) => [d.dealer_id, d]))
+        const dealer = dealersMap.get(carHistoryData.data.car.dealer_id)
+        return transformCarHistory(carHistoryData.data, dealer)
+    }, [selectedCar, carHistoryData, dealersData])
 
     // Service/Accident Tab Sorting
     const [serviceSortField, setServiceSortField] = useState<"date" | "cost">("date")
@@ -207,8 +221,8 @@ export default function CarsPage() {
 
     // Sorted Services
     const sortedServices = useMemo(() => {
-        if (!selectedCar) return []
-        return [...selectedCar.ServiceHistory].sort((a, b) => {
+        if (!selectedCarWithHistory) return []
+        return [...selectedCarWithHistory.ServiceHistory].sort((a, b) => {
             if (serviceSortField === "date") {
                 return serviceSortDirection === "desc"
                     ? new Date(b.DateOfService).getTime() - new Date(a.DateOfService).getTime()
@@ -216,21 +230,21 @@ export default function CarsPage() {
             }
             return serviceSortDirection === "desc" ? b.CostOfService - a.CostOfService : a.CostOfService - b.CostOfService
         })
-    }, [selectedCar, serviceSortField, serviceSortDirection])
+    }, [selectedCarWithHistory, serviceSortField, serviceSortDirection])
 
     // Filtered Accidents
     const filteredAccidents = useMemo(() => {
-        if (!selectedCar) return []
-        if (accidentSeverityFilter === "all") return selectedCar.Accidents
-        return selectedCar.Accidents.filter((a) => a.Severity === accidentSeverityFilter)
-    }, [selectedCar, accidentSeverityFilter])
+        if (!selectedCarWithHistory) return []
+        if (accidentSeverityFilter === "all") return selectedCarWithHistory.Accidents
+        return selectedCarWithHistory.Accidents.filter((a) => a.Severity === accidentSeverityFilter)
+    }, [selectedCarWithHistory, accidentSeverityFilter])
 
     // Calculate summaries for selected car
     const carSummary = useMemo(() => {
-        if (!selectedCar) return null
+        if (!selectedCarWithHistory) return null
 
-        const services = selectedCar.ServiceHistory
-        const accidents = selectedCar.Accidents
+        const services = selectedCarWithHistory.ServiceHistory
+        const accidents = selectedCarWithHistory.Accidents
 
         const latestService =
             services.length > 0
@@ -260,7 +274,7 @@ export default function CarsPage() {
             latestAccidentDate: latestAccident?.DateOfAccident || "N/A",
             highestSeverity,
         }
-    }, [selectedCar])
+    }, [selectedCarWithHistory])
 
     const fuelTypeColors: Record<string, string> = {
         Petrol: "bg-amber-500/20 text-amber-400 border-amber-500/30",
@@ -530,9 +544,23 @@ export default function CarsPage() {
                                 >
                                     <ChevronLeft className="h-4 w-4" />
                                 </Button>
-                                <span className="text-sm px-2">
-                                    Page {currentPage} of {totalPages || 1}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-muted-foreground">Page</span>
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        max={totalPages || 1}
+                                        value={currentPage}
+                                        onChange={(e) => {
+                                            const page = parseInt(e.target.value)
+                                            if (page >= 1 && page <= (totalPages || 1)) {
+                                                setCurrentPage(page)
+                                            }
+                                        }}
+                                        className="h-8 w-16 text-center text-sm"
+                                    />
+                                    <span className="text-sm text-muted-foreground">of {totalPages || 1}</span>
+                                </div>
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -564,267 +592,276 @@ export default function CarsPage() {
                                     </DialogTitle>
                                 </DialogHeader>
 
-                                <Tabs defaultValue="info" className="w-full">
-                                    <TabsList className="w-full justify-start rounded-none border-b border-border bg-transparent px-6">
-                                        <TabsTrigger value="info" className="data-[state=active]:bg-primary/10">
-                                            <Info className="h-4 w-4 mr-2" />
-                                            Info
-                                        </TabsTrigger>
-                                        <TabsTrigger value="services" className="data-[state=active]:bg-primary/10">
-                                            <Wrench className="h-4 w-4 mr-2" />
-                                            Services ({selectedCar.ServiceHistory.length})
-                                        </TabsTrigger>
-                                        <TabsTrigger value="accidents" className="data-[state=active]:bg-primary/10">
-                                            <AlertTriangle className="h-4 w-4 mr-2" />
-                                            Accidents ({selectedCar.Accidents.length})
-                                        </TabsTrigger>
-                                    </TabsList>
+                                {historyLoading ? (
+                                    <div className="flex items-center justify-center h-96">
+                                        <div className="text-center">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                                            <p className="text-sm text-muted-foreground">Loading vehicle history...</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <Tabs defaultValue="info" className="w-full">
+                                        <TabsList className="w-full justify-start rounded-none border-b border-border bg-transparent px-6">
+                                            <TabsTrigger value="info" className="data-[state=active]:bg-primary/10">
+                                                <Info className="h-4 w-4 mr-2" />
+                                                Info
+                                            </TabsTrigger>
+                                            <TabsTrigger value="services" className="data-[state=active]:bg-primary/10">
+                                                <Wrench className="h-4 w-4 mr-2" />
+                                                Services ({selectedCarWithHistory?.ServiceHistory.length || 0})
+                                            </TabsTrigger>
+                                            <TabsTrigger value="accidents" className="data-[state=active]:bg-primary/10">
+                                                <AlertTriangle className="h-4 w-4 mr-2" />
+                                                Accidents ({selectedCarWithHistory?.Accidents.length || 0})
+                                            </TabsTrigger>
+                                        </TabsList>
 
-                                    <ScrollArea className="h-[60vh]">
-                                        {/* Info Tab */}
-                                        <TabsContent value="info" className="p-6 space-y-6 mt-0">
-                                            {/* Specifications */}
-                                            <div>
-                                                <h4 className="text-sm font-semibold text-muted-foreground mb-3">Specifications</h4>
-                                                <div className="grid grid-cols-3 gap-3">
-                                                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                                                        <Settings className="h-4 w-4 text-muted-foreground" />
-                                                        <div>
-                                                            <p className="text-xs text-muted-foreground">Engine Size</p>
-                                                            <p className="text-sm font-medium">
-                                                                {selectedCar.EngineSize > 0 ? `${selectedCar.EngineSize}L` : "Electric"}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                                                        <Fuel className="h-4 w-4 text-muted-foreground" />
-                                                        <div>
-                                                            <p className="text-xs text-muted-foreground">Fuel Type</p>
-                                                            <Badge variant="outline" className={`${fuelTypeColors[selectedCar.FuelType]} mt-0.5`}>
-                                                                {selectedCar.FuelType}
-                                                            </Badge>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                                                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                                                        <div>
-                                                            <p className="text-xs text-muted-foreground">Year</p>
-                                                            <p className="text-sm font-medium">{selectedCar.YearOfManufacturing}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                                                        <Gauge className="h-4 w-4 text-muted-foreground" />
-                                                        <div>
-                                                            <p className="text-xs text-muted-foreground">Mileage</p>
-                                                            <p className="text-sm font-medium">{selectedCar.Mileage.toLocaleString()} mi</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 col-span-2">
-                                                        <PoundSterling className="h-4 w-4 text-accent" />
-                                                        <div>
-                                                            <p className="text-xs text-muted-foreground">Price</p>
-                                                            <p className="text-lg font-bold text-accent">£{selectedCar.Price.toLocaleString()}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Features */}
-                                            <div>
-                                                <h4 className="text-sm font-semibold text-muted-foreground mb-3">Features</h4>
-                                                <div className="flex flex-wrap gap-1.5">
-                                                    {selectedCar.Features.map((feature) => (
-                                                        <Badge key={feature} variant="secondary" className="text-xs">
-                                                            {feature}
-                                                        </Badge>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* Dealer Info */}
-                                            <div>
-                                                <h4 className="text-sm font-semibold text-muted-foreground mb-3">Dealer</h4>
-                                                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                                                    <MapPin className="h-4 w-4 text-primary" />
-                                                    <div>
-                                                        <p className="text-sm font-medium">{selectedCar.DealerName}</p>
-                                                        <p className="text-xs text-muted-foreground">{selectedCar.DealerCity}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Service Summary */}
-                                            {carSummary && (
+                                        <ScrollArea className="h-[60vh]">
+                                            {/* Info Tab */}
+                                            <TabsContent value="info" className="p-6 space-y-6 mt-0">
+                                                {/* Specifications */}
                                                 <div>
-                                                    <h4 className="text-sm font-semibold text-muted-foreground mb-3">Service Summary</h4>
-                                                    <div className="grid grid-cols-4 gap-2 text-sm">
-                                                        <div className="p-3 rounded bg-muted/50">
-                                                            <p className="text-xs text-muted-foreground">Total Services</p>
-                                                            <p className="font-medium text-lg">{carSummary.totalServices}</p>
+                                                    <h4 className="text-sm font-semibold text-muted-foreground mb-3">Specifications</h4>
+                                                    <div className="grid grid-cols-3 gap-3">
+                                                        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                                                            <Settings className="h-4 w-4 text-muted-foreground" />
+                                                            <div>
+                                                                <p className="text-xs text-muted-foreground">Engine Size</p>
+                                                                <p className="text-sm font-medium">
+                                                                    {selectedCar.EngineSize > 0 ? `${selectedCar.EngineSize}L` : "Electric"}
+                                                                </p>
+                                                            </div>
                                                         </div>
-                                                        <div className="p-3 rounded bg-muted/50">
-                                                            <p className="text-xs text-muted-foreground">Total Cost</p>
-                                                            <p className="font-medium">£{carSummary.totalServiceCost.toLocaleString()}</p>
-                                                        </div>
-                                                        <div className="p-3 rounded bg-muted/50">
-                                                            <p className="text-xs text-muted-foreground">Latest Type</p>
-                                                            <p className="font-medium">{carSummary.latestServiceType}</p>
-                                                        </div>
-                                                        <div className="p-3 rounded bg-muted/50">
-                                                            <p className="text-xs text-muted-foreground">Latest Date</p>
-                                                            <p className="font-medium">{carSummary.latestServiceDate}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Accident Summary */}
-                                            {carSummary && (
-                                                <div>
-                                                    <h4 className="text-sm font-semibold text-muted-foreground mb-3">Accident Summary</h4>
-                                                    <div className="grid grid-cols-4 gap-2 text-sm">
-                                                        <div className="p-3 rounded bg-muted/50">
-                                                            <p className="text-xs text-muted-foreground">Total Accidents</p>
-                                                            <p className="font-medium text-lg">{carSummary.totalAccidents}</p>
-                                                        </div>
-                                                        <div className="p-3 rounded bg-muted/50">
-                                                            <p className="text-xs text-muted-foreground">Repair Cost</p>
-                                                            <p className="font-medium">£{carSummary.totalRepairCost.toLocaleString()}</p>
-                                                        </div>
-                                                        <div className="p-3 rounded bg-muted/50">
-                                                            <p className="text-xs text-muted-foreground">Latest Date</p>
-                                                            <p className="font-medium">{carSummary.latestAccidentDate}</p>
-                                                        </div>
-                                                        <div className="p-3 rounded bg-muted/50">
-                                                            <p className="text-xs text-muted-foreground">Highest Severity</p>
-                                                            {carSummary.highestSeverity ? (
-                                                                <Badge variant="outline" className={severityColors[carSummary.highestSeverity]}>
-                                                                    {carSummary.highestSeverity}
+                                                        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                                                            <Fuel className="h-4 w-4 text-muted-foreground" />
+                                                            <div>
+                                                                <p className="text-xs text-muted-foreground">Fuel Type</p>
+                                                                <Badge variant="outline" className={`${fuelTypeColors[selectedCar.FuelType]} mt-0.5`}>
+                                                                    {selectedCar.FuelType}
                                                                 </Badge>
-                                                            ) : (
-                                                                <p className="font-medium">N/A</p>
-                                                            )}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                                                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                                                            <div>
+                                                                <p className="text-xs text-muted-foreground">Year</p>
+                                                                <p className="text-sm font-medium">{selectedCar.YearOfManufacturing}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                                                            <Gauge className="h-4 w-4 text-muted-foreground" />
+                                                            <div>
+                                                                <p className="text-xs text-muted-foreground">Mileage</p>
+                                                                <p className="text-sm font-medium">{selectedCar.Mileage.toLocaleString()} mi</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 col-span-2">
+                                                            <PoundSterling className="h-4 w-4 text-accent" />
+                                                            <div>
+                                                                <p className="text-xs text-muted-foreground">Price</p>
+                                                                <p className="text-lg font-bold text-accent">£{selectedCar.Price.toLocaleString()}</p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            )}
-                                        </TabsContent>
 
-                                        {/* Services Tab */}
-                                        <TabsContent value="services" className="p-6 mt-0">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h4 className="text-sm font-semibold">Service Records</h4>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-muted-foreground">Sort by:</span>
-                                                    <Select
-                                                        value={`${serviceSortField}-${serviceSortDirection}`}
-                                                        onValueChange={(v) => {
-                                                            const [field, dir] = v.split("-") as ["date" | "cost", SortDirection]
-                                                            setServiceSortField(field)
-                                                            setServiceSortDirection(dir)
-                                                        }}
-                                                    >
+                                                {/* Features */}
+                                                <div>
+                                                    <h4 className="text-sm font-semibold text-muted-foreground mb-3">Features</h4>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {selectedCar.Features.map((feature) => (
+                                                            <Badge key={feature} variant="secondary" className="text-xs">
+                                                                {feature}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Dealer Info */}
+                                                <div>
+                                                    <h4 className="text-sm font-semibold text-muted-foreground mb-3">Dealer</h4>
+                                                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                                                        <MapPin className="h-4 w-4 text-primary" />
+                                                        <div>
+                                                            <p className="text-sm font-medium">{selectedCar.DealerName}</p>
+                                                            <p className="text-xs text-muted-foreground">{selectedCar.DealerCity}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Service Summary */}
+                                                {carSummary && (
+                                                    <div>
+                                                        <h4 className="text-sm font-semibold text-muted-foreground mb-3">Service Summary</h4>
+                                                        <div className="grid grid-cols-4 gap-2 text-sm">
+                                                            <div className="p-3 rounded bg-muted/50">
+                                                                <p className="text-xs text-muted-foreground">Total Services</p>
+                                                                <p className="font-medium text-lg">{carSummary.totalServices}</p>
+                                                            </div>
+                                                            <div className="p-3 rounded bg-muted/50">
+                                                                <p className="text-xs text-muted-foreground">Total Cost</p>
+                                                                <p className="font-medium">£{carSummary.totalServiceCost.toLocaleString()}</p>
+                                                            </div>
+                                                            <div className="p-3 rounded bg-muted/50">
+                                                                <p className="text-xs text-muted-foreground">Latest Type</p>
+                                                                <p className="font-medium">{carSummary.latestServiceType}</p>
+                                                            </div>
+                                                            <div className="p-3 rounded bg-muted/50">
+                                                                <p className="text-xs text-muted-foreground">Latest Date</p>
+                                                                <p className="font-medium">{carSummary.latestServiceDate}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Accident Summary */}
+                                                {carSummary && (
+                                                    <div>
+                                                        <h4 className="text-sm font-semibold text-muted-foreground mb-3">Accident Summary</h4>
+                                                        <div className="grid grid-cols-4 gap-2 text-sm">
+                                                            <div className="p-3 rounded bg-muted/50">
+                                                                <p className="text-xs text-muted-foreground">Total Accidents</p>
+                                                                <p className="font-medium text-lg">{carSummary.totalAccidents}</p>
+                                                            </div>
+                                                            <div className="p-3 rounded bg-muted/50">
+                                                                <p className="text-xs text-muted-foreground">Repair Cost</p>
+                                                                <p className="font-medium">£{carSummary.totalRepairCost.toLocaleString()}</p>
+                                                            </div>
+                                                            <div className="p-3 rounded bg-muted/50">
+                                                                <p className="text-xs text-muted-foreground">Latest Date</p>
+                                                                <p className="font-medium">{carSummary.latestAccidentDate}</p>
+                                                            </div>
+                                                            <div className="p-3 rounded bg-muted/50">
+                                                                <p className="text-xs text-muted-foreground">Highest Severity</p>
+                                                                {carSummary.highestSeverity ? (
+                                                                    <Badge variant="outline" className={severityColors[carSummary.highestSeverity]}>
+                                                                        {carSummary.highestSeverity}
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <p className="font-medium">N/A</p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </TabsContent>
+
+                                            {/* Services Tab */}
+                                            <TabsContent value="services" className="p-6 mt-0">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h4 className="text-sm font-semibold">Service Records</h4>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs text-muted-foreground">Sort by:</span>
+                                                        <Select
+                                                            value={`${serviceSortField}-${serviceSortDirection}`}
+                                                            onValueChange={(v) => {
+                                                                const [field, dir] = v.split("-") as ["date" | "cost", SortDirection]
+                                                                setServiceSortField(field)
+                                                                setServiceSortDirection(dir)
+                                                            }}
+                                                        >
+                                                            <SelectTrigger className="h-7 text-xs w-[120px]">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="date-desc">Date (Newest)</SelectItem>
+                                                                <SelectItem value="date-asc">Date (Oldest)</SelectItem>
+                                                                <SelectItem value="cost-desc">Cost (High)</SelectItem>
+                                                                <SelectItem value="cost-asc">Cost (Low)</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                </div>
+
+                                                {sortedServices.length > 0 ? (
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow className="border-border">
+                                                                <TableHead className="text-xs">Service ID</TableHead>
+                                                                <TableHead className="text-xs">Date</TableHead>
+                                                                <TableHead className="text-xs">Type</TableHead>
+                                                                <TableHead className="text-xs text-right">Cost</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {sortedServices.map((service) => (
+                                                                <TableRow key={service.ServiceID} className="border-border">
+                                                                    <TableCell className="font-mono text-xs">{service.ServiceID}</TableCell>
+                                                                    <TableCell className="text-xs">{service.DateOfService}</TableCell>
+                                                                    <TableCell className="text-xs">{service.ServiceType}</TableCell>
+                                                                    <TableCell className="text-xs text-right font-semibold">
+                                                                        £{service.CostOfService}
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                ) : (
+                                                    <div className="text-center py-8 text-muted-foreground">
+                                                        <Wrench className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                        <p className="text-sm">No service records</p>
+                                                    </div>
+                                                )}
+                                            </TabsContent>
+
+                                            {/* Accidents Tab */}
+                                            <TabsContent value="accidents" className="p-6 mt-0">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h4 className="text-sm font-semibold">Accident Records</h4>
+                                                    <Select value={accidentSeverityFilter} onValueChange={setAccidentSeverityFilter}>
                                                         <SelectTrigger className="h-7 text-xs w-[120px]">
-                                                            <SelectValue />
+                                                            <SelectValue placeholder="Severity" />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="date-desc">Date (Newest)</SelectItem>
-                                                            <SelectItem value="date-asc">Date (Oldest)</SelectItem>
-                                                            <SelectItem value="cost-desc">Cost (High)</SelectItem>
-                                                            <SelectItem value="cost-asc">Cost (Low)</SelectItem>
+                                                            <SelectItem value="all">All</SelectItem>
+                                                            <SelectItem value="Minor">Minor</SelectItem>
+                                                            <SelectItem value="Moderate">Moderate</SelectItem>
+                                                            <SelectItem value="Major">Major</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
-                                            </div>
 
-                                            {sortedServices.length > 0 ? (
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow className="border-border">
-                                                            <TableHead className="text-xs">Service ID</TableHead>
-                                                            <TableHead className="text-xs">Date</TableHead>
-                                                            <TableHead className="text-xs">Type</TableHead>
-                                                            <TableHead className="text-xs text-right">Cost</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {sortedServices.map((service) => (
-                                                            <TableRow key={service.ServiceID} className="border-border">
-                                                                <TableCell className="font-mono text-xs">{service.ServiceID}</TableCell>
-                                                                <TableCell className="text-xs">{service.DateOfService}</TableCell>
-                                                                <TableCell className="text-xs">{service.ServiceType}</TableCell>
-                                                                <TableCell className="text-xs text-right font-semibold">
-                                                                    £{service.CostOfService}
-                                                                </TableCell>
+                                                {filteredAccidents.length > 0 ? (
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow className="border-border">
+                                                                <TableHead className="text-xs">ID</TableHead>
+                                                                <TableHead className="text-xs">Date</TableHead>
+                                                                <TableHead className="text-xs">Description</TableHead>
+                                                                <TableHead className="text-xs">Severity</TableHead>
+                                                                <TableHead className="text-xs text-right">Cost</TableHead>
                                                             </TableRow>
-                                                        ))}
-                                                    </TableBody>
-                                                </Table>
-                                            ) : (
-                                                <div className="text-center py-8 text-muted-foreground">
-                                                    <Wrench className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                                    <p className="text-sm">No service records</p>
-                                                </div>
-                                            )}
-                                        </TabsContent>
-
-                                        {/* Accidents Tab */}
-                                        <TabsContent value="accidents" className="p-6 mt-0">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h4 className="text-sm font-semibold">Accident Records</h4>
-                                                <Select value={accidentSeverityFilter} onValueChange={setAccidentSeverityFilter}>
-                                                    <SelectTrigger className="h-7 text-xs w-[120px]">
-                                                        <SelectValue placeholder="Severity" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="all">All</SelectItem>
-                                                        <SelectItem value="Minor">Minor</SelectItem>
-                                                        <SelectItem value="Moderate">Moderate</SelectItem>
-                                                        <SelectItem value="Major">Major</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-
-                                            {filteredAccidents.length > 0 ? (
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow className="border-border">
-                                                            <TableHead className="text-xs">ID</TableHead>
-                                                            <TableHead className="text-xs">Date</TableHead>
-                                                            <TableHead className="text-xs">Description</TableHead>
-                                                            <TableHead className="text-xs">Severity</TableHead>
-                                                            <TableHead className="text-xs text-right">Cost</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {filteredAccidents.map((accident) => (
-                                                            <TableRow key={accident.AccidentID} className="border-border">
-                                                                <TableCell className="font-mono text-xs">{accident.AccidentID}</TableCell>
-                                                                <TableCell className="text-xs">{accident.DateOfAccident}</TableCell>
-                                                                <TableCell className="text-xs max-w-[150px] truncate" title={accident.Description}>
-                                                                    {accident.Description}
-                                                                </TableCell>
-                                                                <TableCell>
-                                                                    <Badge variant="outline" className={`text-xs ${severityColors[accident.Severity]}`}>
-                                                                        {accident.Severity}
-                                                                    </Badge>
-                                                                </TableCell>
-                                                                <TableCell className="text-xs text-right font-semibold">
-                                                                    £{accident.CostOfRepair}
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))}
-                                                    </TableBody>
-                                                </Table>
-                                            ) : (
-                                                <div className="text-center py-8 text-muted-foreground">
-                                                    <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                                    <p className="text-sm">No accident records</p>
-                                                </div>
-                                            )}
-                                        </TabsContent>
-                                    </ScrollArea>
-                                </Tabs>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {filteredAccidents.map((accident) => (
+                                                                <TableRow key={accident.AccidentID} className="border-border">
+                                                                    <TableCell className="font-mono text-xs">{accident.AccidentID}</TableCell>
+                                                                    <TableCell className="text-xs">{accident.DateOfAccident}</TableCell>
+                                                                    <TableCell className="text-xs max-w-[150px] truncate" title={accident.Description}>
+                                                                        {accident.Description}
+                                                                    </TableCell>
+                                                                    <TableCell>
+                                                                        <Badge variant="outline" className={`text-xs ${severityColors[accident.Severity]}`}>
+                                                                            {accident.Severity}
+                                                                        </Badge>
+                                                                    </TableCell>
+                                                                    <TableCell className="text-xs text-right font-semibold">
+                                                                        £{accident.CostOfRepair}
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                ) : (
+                                                    <div className="text-center py-8 text-muted-foreground">
+                                                        <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                        <p className="text-sm">No accident records</p>
+                                                    </div>
+                                                )}
+                                            </TabsContent>
+                                        </ScrollArea>
+                                    </Tabs>
+                                )}
                             </>
                         )}
                     </DialogContent>

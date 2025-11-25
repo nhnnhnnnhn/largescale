@@ -12,6 +12,30 @@ export function transformCar(
     backendCar: BackendCar,
     dealer?: BackendDealer
 ): CarRecord {
+    // Create placeholder service records based on summary count
+    // This allows the table to show counts even without full history
+    const serviceHistory: ServiceRecord[] = Array.from(
+        { length: backendCar.service_summary.total_services },
+        (_, i) => ({
+            ServiceID: `placeholder-${i}`,
+            DateOfService: backendCar.service_summary.last_service_date || "",
+            ServiceType: backendCar.service_summary.last_service_type || "Unknown",
+            CostOfService: 0,
+        })
+    )
+
+    // Create placeholder accident records based on summary count
+    const accidents: AccidentRecord[] = Array.from(
+        { length: backendCar.accident_summary.total_accidents },
+        (_, i) => ({
+            AccidentID: `placeholder-${i}`,
+            DateOfAccident: backendCar.accident_summary.last_accident_date || "",
+            Description: "",
+            CostOfRepair: 0,
+            Severity: (backendCar.accident_summary.highest_severity as any) || "Minor",
+        })
+    )
+
     return {
         CarID: backendCar.car_id,
         Manufacturer: backendCar.manufacturer,
@@ -26,8 +50,8 @@ export function transformCar(
         DealerCity: dealer?.city || "",
         Latitude: dealer?.location?.coordinates[1] || 0,
         Longitude: dealer?.location?.coordinates[0] || 0,
-        ServiceHistory: [],
-        Accidents: [],
+        ServiceHistory: serviceHistory,
+        Accidents: accidents,
     }
 }
 
