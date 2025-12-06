@@ -173,6 +173,13 @@ export interface TopDealer {
     avg_price: number
 }
 
+export interface AccidentTrend {
+    month: string
+    count: number
+    totalCost: number
+    avgCost: number
+}
+
 // Search Request Body
 export interface SearchCarsRequest {
     manufacturers?: string[]

@@ -1,41 +1,37 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
-import { useGetAccidentSeverityQuery } from "@/store/services/analyticsApi"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
+import { useGetPriceDistributionQuery } from "@/store/services/analyticsApi"
 
-// Blue-based colors for severity levels (darker = more severe)
-const SEVERITY_COLORS = {
-    Minor: "#93c5fd",    // Blue 300 - lightest
-    Moderate: "#3b82f6", // Blue 500 - medium
-    Major: "#1e40af",    // Blue 800 - darkest
-    Severe: "#1e3a8a",   // Blue 900 - very severe
-}
+// Blue gradient for price ranges
+const COLORS = [
+    "#dbeafe", // Blue 100 - lowest price
+    "#bfdbfe", // Blue 200
+    "#93c5fd", // Blue 300
+    "#60a5fa", // Blue 400
+    "#3b82f6", // Blue 500
+    "#2563eb", // Blue 600
+    "#1d4ed8", // Blue 700
+    "#1e40af", // Blue 800
+    "#1e3a8a", // Blue 900
+    "#172554", // Blue 950 - highest price
+]
 
-export function AccidentSeverityChart() {
-    const { data, isLoading, error } = useGetAccidentSeverityQuery()
+export function PriceDistributionChart() {
+    const { data, isLoading, error } = useGetPriceDistributionQuery({ bins: 10 })
 
-    // Group data by severity
-    const chartData = data?.data?.reduce((acc: any, item) => {
-        const existing = acc.find((s: any) => s.severity === item.severity)
-        if (existing) {
-            existing.count += item.count
-        } else {
-            acc.push({
-                severity: item.severity,
-                count: item.count,
-            })
-        }
-        return acc
-    }, [])?.sort((a: any, b: any) => {
-        const order = ['Minor', 'Moderate', 'Major', 'Severe']
-        return order.indexOf(a.severity) - order.indexOf(b.severity)
-    }) || []
+    // Format data for display
+    const chartData = data?.data?.map((item: any) => ({
+        range: `£${(item._id / 1000).toFixed(0)}k`,
+        count: item.count,
+        price: item._id,
+    })) || []
 
     return (
         <Card className="bg-white border border-gray-200 shadow-sm h-full">
             <CardHeader className="pb-2">
-                <CardTitle className="text-base font-semibold text-gray-900">Accident Severity Distribution</CardTitle>
+                <CardTitle className="text-base font-semibold text-gray-900">Price Distribution</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
                 <div className="h-[280px]">
@@ -49,11 +45,11 @@ export function AccidentSeverityChart() {
                         </div>
                     ) : (
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                                 <XAxis
-                                    dataKey="severity"
-                                    tick={{ fill: "#6b7280", fontSize: 12 }}
+                                    dataKey="range"
+                                    tick={{ fill: "#6b7280", fontSize: 11 }}
                                     axisLine={{ stroke: "#e5e7eb" }}
                                     tickLine={false}
                                 />
@@ -70,18 +66,11 @@ export function AccidentSeverityChart() {
                                         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                                     }}
                                     labelStyle={{ color: "#111827", fontWeight: 600 }}
-                                    formatter={(value: number) => [value.toLocaleString(), "Accidents"]}
+                                    formatter={(value: number) => [`${value.toLocaleString()} cars`, "Count"]}
                                 />
-                                <Bar
-                                    dataKey="count"
-                                    radius={[4, 4, 0, 0]}
-                                    fill="#3b82f6"
-                                >
-                                    {chartData.map((entry: any, index: number) => (
-                                        <rect
-                                            key={`bar-${index}`}
-                                            fill={SEVERITY_COLORS[entry.severity as keyof typeof SEVERITY_COLORS] || "#3b82f6"}
-                                        />
+                                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                                    {chartData.map((_, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Bar>
                             </BarChart>

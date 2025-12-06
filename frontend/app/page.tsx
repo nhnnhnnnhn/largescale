@@ -1,57 +1,38 @@
 "use client"
 
-import { Header } from "@/components/layout/header"
 import { StatsCards } from "@/components/dashboard/stats-cards"
-import { DataTable } from "@/components/dashboard/data-table"
 import { ManufacturerBarChart } from "@/components/dashboard/charts/manufacturer-bar-chart"
 import { FuelTypePieChart } from "@/components/dashboard/charts/fuel-type-pie-chart"
-import { ServiceTrendChart } from "@/components/dashboard/charts/service-trend-chart"
+import { CombinedTrendsChart } from "@/components/dashboard/charts/combined-trends-chart"
 import { AccidentSeverityChart } from "@/components/dashboard/charts/accident-severity-chart"
-import { MileageScatterChart } from "@/components/dashboard/charts/mileage-scatter-chart"
-import { PriceLineChart } from "@/components/dashboard/charts/price-line-chart"
+import { PriceDistributionChart } from "@/components/dashboard/charts/price-distribution-chart"
 import { DealerSalesChart } from "@/components/dashboard/charts/dealer-sales-chart"
-import { useFilters } from "@/lib/filter-context"
 
 export default function DashboardPage() {
-    const { filters, setFilter, resetFilters, filterOptions } = useFilters()
-
     return (
-        <div className="min-h-screen bg-background">
-            <Header
-                title="Dashboard"
-                subtitle="Car sales analytics and insights"
-                filters={{
-                    manufacturers: filterOptions.manufacturers,
-                    cities: filterOptions.cities,
-                    fuelTypes: filterOptions.fuelTypes,
-                    years: filterOptions.years,
-                }}
-                selectedFilters={filters}
-                onFilterChange={setFilter}
-                onReset={resetFilters}
-            />
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <div className="bg-white border-b border-gray-200 px-6 py-4">
+                <h1 className="text-2xl font-bold text-gray-900">Car Sales Dashboard</h1>
+                <p className="text-sm text-gray-500 mt-1">MongoDB-based interactive data exploration</p>
+            </div>
 
             <div className="p-6 space-y-6">
+                {/* Stats Cards - 4 equal columns */}
                 <StatsCards />
 
-                <div className="grid gap-6 md:grid-cols-2">
+                {/* Charts Grid - 3 columns, 2 rows */}
+                <div className="grid grid-cols-3 gap-6">
+                    {/* Row 1 */}
                     <ManufacturerBarChart />
                     <FuelTypePieChart />
-                </div>
+                    <CombinedTrendsChart />
 
-                <div className="grid gap-6 md:grid-cols-2">
-                    <ServiceTrendChart />
+                    {/* Row 2 */}
                     <AccidentSeverityChart />
+                    <PriceDistributionChart />
+                    <DealerSalesChart />
                 </div>
-
-                <div className="grid gap-6 md:grid-cols-2">
-                    <MileageScatterChart />
-                    <PriceLineChart />
-                </div>
-
-                <DealerSalesChart />
-
-                <DataTable />
             </div>
         </div>
     )

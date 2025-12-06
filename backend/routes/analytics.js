@@ -6,6 +6,7 @@ const {
     getByFuelType,
     getServiceTrends,
     getAccidentSeverity,
+    getAccidentTrends,
     getMileagePrice,
     getPriceDistribution,
     getTopDealers
@@ -22,6 +23,9 @@ router.get('/by-fuel-type', getByFuelType);
 
 // @route   GET /api/analytics/service-trends
 router.get('/service-trends', getServiceTrends);
+
+// @route   GET /api/analytics/accident-trends
+router.get('/accident-trends', getAccidentTrends);
 
 // @route   GET /api/analytics/accident-severity
 router.get('/accident-severity', getAccidentSeverity);

@@ -1,23 +1,31 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Car, DollarSign, Gauge, Wrench } from "lucide-react"
+import { Car, Store, AlertTriangle, Wrench } from "lucide-react"
 import { useGetOverviewQuery } from "@/store/services/analyticsApi"
+
+// Blue color palette optimized for data visualization
+const BLUE_COLORS = {
+  primary: "#2563eb",    // Blue 600
+  secondary: "#3b82f6",  // Blue 500
+  accent: "#1d4ed8",     // Blue 700
+  light: "#60a5fa",      // Blue 400
+}
 
 export function StatsCards() {
   const { data, isLoading, error } = useGetOverviewQuery()
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         {[...Array(4)].map((_, i) => (
-          <Card key={i} className="bg-card border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-muted/50 animate-pulse" />
+          <Card key={i} className="bg-white border border-gray-200 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-gray-100 animate-pulse" />
                 <div className="space-y-2 flex-1">
-                  <div className="h-3 w-20 bg-muted/50 rounded animate-pulse" />
-                  <div className="h-6 w-16 bg-muted/50 rounded animate-pulse" />
+                  <div className="h-4 w-24 bg-gray-100 rounded animate-pulse" />
+                  <div className="h-8 w-20 bg-gray-100 rounded animate-pulse" />
                 </div>
               </div>
             </CardContent>
@@ -29,9 +37,9 @@ export function StatsCards() {
 
   if (error || !data?.data) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="col-span-full bg-card border-border">
-          <CardContent className="p-4 text-center text-muted-foreground">
+      <div className="grid grid-cols-4 gap-4">
+        <Card className="col-span-full bg-white border border-gray-200">
+          <CardContent className="p-6 text-center text-gray-500">
             Failed to load statistics
           </CardContent>
         </Card>
@@ -43,47 +51,53 @@ export function StatsCards() {
 
   const stats = [
     {
-      title: "Total Vehicles",
-      value: overview.total_cars,
+      title: "Total Cars",
+      value: overview.total_cars.toLocaleString(),
       icon: Car,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
+      color: BLUE_COLORS.primary,
+      bgColor: "#dbeafe", // Blue 100
     },
     {
-      title: "Average Price",
-      value: `£${overview.average_price.toLocaleString()}`,
-      icon: DollarSign,
-      color: "text-accent",
-      bgColor: "bg-accent/10",
+      title: "Total Dealers",
+      value: overview.total_dealers.toLocaleString(),
+      icon: Store,
+      color: BLUE_COLORS.secondary,
+      bgColor: "#bfdbfe", // Blue 200
+    },
+    {
+      title: "Total Accidents",
+      value: overview.total_accidents.toLocaleString(),
+      icon: AlertTriangle,
+      color: BLUE_COLORS.accent,
+      bgColor: "#93c5fd", // Blue 300
     },
     {
       title: "Total Services",
       value: overview.total_services.toLocaleString(),
       icon: Wrench,
-      color: "text-chart-3",
-      bgColor: "bg-chart-3/10",
-    },
-    {
-      title: "Total Dealers",
-      value: overview.total_dealers,
-      icon: Gauge,
-      color: "text-chart-4",
-      bgColor: "bg-chart-4/10",
+      color: BLUE_COLORS.light,
+      bgColor: "#60a5fa", // Blue 400
     },
   ]
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-4 gap-4">
       {stats.map((stat) => (
-        <Card key={stat.title} className="bg-card border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+        <Card key={stat.title} className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div
+                className="p-3 rounded-xl"
+                style={{ backgroundColor: stat.bgColor }}
+              >
+                <stat.icon
+                  className="h-6 w-6"
+                  style={{ color: stat.color }}
+                />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">{stat.title}</p>
-                <p className="text-xl font-semibold">{stat.value}</p>
+                <p className="text-sm font-medium text-gray-500">{stat.title}</p>
+                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
               </div>
             </div>
           </CardContent>

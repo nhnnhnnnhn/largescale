@@ -23,7 +23,6 @@ export function Sidebar() {
         </div>
         <div>
           <h1 className="text-sm font-semibold">UK Car Sales</h1>
-          <p className="text-xs text-muted-foreground">MongoDB Dashboard</p>
         </div>
       </div>
 
@@ -48,15 +47,6 @@ export function Sidebar() {
           )
         })}
       </nav>
-
-      {/* MongoDB Status */}
-      <div className="absolute bottom-0 left-0 right-0 border-t border-border p-4">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Database className="h-3.5 w-3.5 text-accent" />
-          <span>MongoDB Connected</span>
-          <span className="ml-auto h-2 w-2 rounded-full bg-accent animate-pulse" />
-        </div>
-      </div>
     </aside>
   )
 }

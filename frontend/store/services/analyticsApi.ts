@@ -5,6 +5,7 @@ import type {
     ManufacturerStats,
     FuelTypeStats,
     ServiceTrend,
+    AccidentTrend,
     AccidentSeverityStats,
     MileagePriceData,
     PriceDistribution,
@@ -34,6 +35,14 @@ export const analyticsApi = apiSlice.injectEndpoints({
                 params: { months },
             }),
             providesTags: [{ type: "Analytics", id: "SERVICE_TRENDS" }],
+        }),
+
+        getAccidentTrends: builder.query<ApiResponse<AccidentTrend[]>, { months?: number }>({
+            query: ({ months = 24 }) => ({
+                url: "/analytics/accident-trends",
+                params: { months },
+            }),
+            providesTags: [{ type: "Analytics", id: "ACCIDENT_TRENDS" }],
         }),
 
         getAccidentSeverity: builder.query<ApiResponse<AccidentSeverityStats[]>, void>({
@@ -72,6 +81,7 @@ export const {
     useGetByManufacturerQuery,
     useGetByFuelTypeQuery,
     useGetServiceTrendsQuery,
+    useGetAccidentTrendsQuery,
     useGetAccidentSeverityQuery,
     useGetMileagePriceQuery,
     useGetPriceDistributionQuery,

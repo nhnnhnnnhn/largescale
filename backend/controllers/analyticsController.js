@@ -374,3 +374,57 @@ exports.getTopDealers = async (req, res, next) => {
         next(error);
     }
 };
+
+// @desc    Get accident trends over time
+// @route   GET /api/analytics/accident-trends
+// @access  Public
+exports.getAccidentTrends = async (req, res, next) => {
+    try {
+        const months = parseInt(req.query.months) || 24;
+
+        const cutoffDate = new Date();
+        cutoffDate.setMonth(cutoffDate.getMonth() - months);
+        const cutoffString = cutoffDate.toISOString().split('T')[0];
+
+        const trends = await Accident.aggregate([
+            {
+                $match: {
+                    date: { $gte: cutoffString }
+                }
+            },
+            {
+                $addFields: {
+                    yearMonth: { $substr: ['$date', 0, 7] }
+                }
+            },
+            {
+                $group: {
+                    _id: '$yearMonth',
+                    count: { $sum: 1 },
+                    totalCost: { $sum: '$cost_of_repair' },
+                    avgCost: { $avg: '$cost_of_repair' }
+                }
+            },
+            {
+                $sort: { _id: 1 }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    month: '$_id',
+                    count: 1,
+                    totalCost: { $round: ['$totalCost', 2] },
+                    avgCost: { $round: ['$avgCost', 2] }
+                }
+            }
+        ]);
+
+        res.json({
+            success: true,
+            data: trends,
+            period: `Last ${months} months`
+        });
+    } catch (error) {
+        next(error);
+    }
+};
