@@ -39,38 +39,38 @@ export function AccidentSeverityChart() {
                     ) : (
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.01 260)" vertical={false} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.88 0 0)" vertical={false} />
                                 <XAxis
                                     dataKey="manufacturer"
-                                    tick={{ fill: "oklch(0.65 0.01 260)", fontSize: 11 }}
-                                    axisLine={{ stroke: "oklch(0.28 0.01 260)" }}
+                                    tick={{ fill: "oklch(0.45 0 0)", fontSize: 11 }}
+                                    axisLine={{ stroke: "oklch(0.88 0 0)" }}
                                     tickLine={false}
                                     angle={-45}
                                     textAnchor="end"
                                     height={80}
                                 />
                                 <YAxis
-                                    tick={{ fill: "oklch(0.65 0.01 260)", fontSize: 11 }}
+                                    tick={{ fill: "oklch(0.45 0 0)", fontSize: 11 }}
                                     axisLine={false}
                                     tickLine={false}
                                 />
                                 <Tooltip
                                     contentStyle={{
-                                        backgroundColor: "oklch(0.17 0.01 260)",
-                                        border: "1px solid oklch(0.28 0.01 260)",
+                                        backgroundColor: "oklch(1 0 0)",
+                                        border: "1px solid oklch(0.88 0 0)",
                                         borderRadius: "8px",
-                                        color: "oklch(0.95 0.01 260)",
+                                        color: "oklch(0.145 0 0)",
                                     }}
-                                    labelStyle={{ color: "oklch(0.95 0.01 260)" }}
-                                    itemStyle={{ color: "oklch(0.95 0.01 260)" }}
+                                    labelStyle={{ color: "oklch(0.145 0 0)" }}
+                                    itemStyle={{ color: "oklch(0.145 0 0)" }}
                                 />
                                 <Legend
                                     wrapperStyle={{ fontSize: 12 }}
-                                    formatter={(value) => <span style={{ color: "oklch(0.95 0.01 260)" }}>{value}</span>}
+                                    formatter={(value) => <span style={{ color: "oklch(0.145 0 0)" }}>{value}</span>}
                                 />
-                                <Bar dataKey="Minor" fill="oklch(0.55 0.2 160)" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="Moderate" fill="oklch(0.65 0.2 45)" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="Major" fill="oklch(0.6 0.2 330)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="Minor" fill="oklch(0.5 0.16 215)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="Moderate" fill="oklch(0.45 0.18 230)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="Major" fill="oklch(0.35 0.15 250)" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     )}

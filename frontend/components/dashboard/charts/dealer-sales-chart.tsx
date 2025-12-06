@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useGetTopDealersQuery } from "@/store/services/analyticsApi"
 
 export function DealerSalesChart() {
-    const { data, isLoading, error } = useGetTopDealersQuery({ limit: 10 })
+    const { data, isLoading, error } = useGetTopDealersQuery({ limit: 8 })
 
     return (
         <Card className="bg-card border-border">
@@ -13,7 +13,7 @@ export function DealerSalesChart() {
                 <CardTitle className="text-base">Top Dealers by Sales Volume</CardTitle>
             </CardHeader>
             <CardContent>
-                <div className="h-[320px]">
+                <div className="h-[400px]">
                     {isLoading ? (
                         <div className="flex items-center justify-center h-full">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -27,32 +27,34 @@ export function DealerSalesChart() {
                             <BarChart
                                 data={data.data}
                                 layout="vertical"
-                                margin={{ top: 10, right: 30, left: 100, bottom: 0 }}
+                                margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
                             >
-                                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.01 260)" horizontal={false} />
+                                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.88 0 0)" horizontal={false} />
                                 <XAxis
                                     type="number"
-                                    tick={{ fill: "oklch(0.65 0.01 260)", fontSize: 11 }}
-                                    axisLine={{ stroke: "oklch(0.28 0.01 260)" }}
+                                    tick={{ fill: "oklch(0.45 0 0)", fontSize: 11 }}
+                                    axisLine={{ stroke: "oklch(0.88 0 0)" }}
                                     tickLine={false}
                                     tickFormatter={(value) => `£${(value / 1000000).toFixed(1)}M`}
                                 />
                                 <YAxis
                                     type="category"
                                     dataKey="dealer_name"
-                                    tick={{ fill: "oklch(0.65 0.01 260)", fontSize: 11 }}
+                                    tick={{ fill: "oklch(0.45 0 0)", fontSize: 12 }}
                                     axisLine={false}
                                     tickLine={false}
+                                    width={120}
+                                    interval={0}
                                 />
                                 <Tooltip
                                     contentStyle={{
-                                        backgroundColor: "oklch(0.17 0.01 260)",
-                                        border: "1px solid oklch(0.28 0.01 260)",
+                                        backgroundColor: "oklch(1 0 0)",
+                                        border: "1px solid oklch(0.88 0 0)",
                                         borderRadius: "8px",
-                                        color: "oklch(0.95 0.01 260)",
+                                        color: "oklch(0.145 0 0)",
                                     }}
-                                    labelStyle={{ color: "oklch(0.95 0.01 260)" }}
-                                    itemStyle={{ color: "oklch(0.95 0.01 260)" }}
+                                    labelStyle={{ color: "oklch(0.145 0 0)" }}
+                                    itemStyle={{ color: "oklch(0.145 0 0)" }}
                                     formatter={(value: any, name: string, props: any) => {
                                         if (name === "total_sales") {
                                             return [
@@ -71,7 +73,7 @@ export function DealerSalesChart() {
                                 />
                                 <Bar
                                     dataKey="total_sales"
-                                    fill="oklch(0.55 0.2 160)"
+                                    fill="oklch(0.5 0.16 215)"
                                     radius={[0, 4, 4, 0]}
                                 />
                             </BarChart>

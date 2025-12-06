@@ -25,36 +25,36 @@ export function MileageScatterChart() {
                     ) : (
                         <ResponsiveContainer width="100%" height="100%">
                             <ScatterChart margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.01 260)" />
+                                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.88 0 0)" />
                                 <XAxis
                                     type="number"
                                     dataKey="mileage"
                                     name="Mileage"
-                                    tick={{ fill: "oklch(0.65 0.01 260)", fontSize: 11 }}
-                                    axisLine={{ stroke: "oklch(0.28 0.01 260)" }}
+                                    tick={{ fill: "oklch(0.45 0 0)", fontSize: 11 }}
+                                    axisLine={{ stroke: "oklch(0.88 0 0)" }}
                                     tickLine={false}
-                                    label={{ value: "Mileage", position: "insideBottom", offset: -5, fill: "oklch(0.65 0.01 260)", fontSize: 11 }}
+                                    label={{ value: "Mileage", position: "insideBottom", offset: -5, fill: "oklch(0.45 0 0)", fontSize: 11 }}
                                 />
                                 <YAxis
                                     type="number"
                                     dataKey="price"
                                     name="Price"
-                                    tick={{ fill: "oklch(0.65 0.01 260)", fontSize: 11 }}
+                                    tick={{ fill: "oklch(0.45 0 0)", fontSize: 11 }}
                                     axisLine={false}
                                     tickLine={false}
-                                    label={{ value: "Price (£)", angle: -90, position: "insideLeft", fill: "oklch(0.65 0.01 260)", fontSize: 11 }}
+                                    label={{ value: "Price (£)", angle: -90, position: "insideLeft", fill: "oklch(0.45 0 0)", fontSize: 11 }}
                                 />
                                 <ZAxis range={[50, 50]} />
                                 <Tooltip
                                     cursor={{ strokeDasharray: "3 3" }}
                                     contentStyle={{
-                                        backgroundColor: "oklch(0.17 0.01 260)",
-                                        border: "1px solid oklch(0.28 0.01 260)",
+                                        backgroundColor: "oklch(1 0 0)",
+                                        border: "1px solid oklch(0.88 0 0)",
                                         borderRadius: "8px",
-                                        color: "oklch(0.95 0.01 260)",
+                                        color: "oklch(0.145 0 0)",
                                     }}
-                                    labelStyle={{ color: "oklch(0.95 0.01 260)" }}
-                                    itemStyle={{ color: "oklch(0.95 0.01 260)" }}
+                                    labelStyle={{ color: "oklch(0.145 0 0)" }}
+                                    itemStyle={{ color: "oklch(0.145 0 0)" }}
                                     formatter={(value: any, name: string) => {
                                         if (name === "price") return [`£${value.toLocaleString()}`, "Price"]
                                         if (name === "mileage") return [value.toLocaleString(), "Mileage"]
@@ -70,7 +70,7 @@ export function MileageScatterChart() {
                                 <Scatter
                                     name="Cars"
                                     data={data.data}
-                                    fill="oklch(0.65 0.18 250)"
+                                    fill="oklch(0.45 0.18 230)"
                                     fillOpacity={0.6}
                                 />
                             </ScatterChart>

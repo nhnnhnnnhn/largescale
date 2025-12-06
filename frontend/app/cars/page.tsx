@@ -57,6 +57,7 @@ export default function CarsPage() {
     // Search & Pagination State
     const [searchQuery, setSearchQuery] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
+    const [pageInputValue, setPageInputValue] = useState("1")
 
     // Advanced Filter State
     const [accidentCountFilter, setAccidentCountFilter] = useState<string>("all")
@@ -88,6 +89,8 @@ export default function CarsPage() {
     const [serviceSortField, setServiceSortField] = useState<"date" | "cost">("date")
     const [serviceSortDirection, setServiceSortDirection] = useState<SortDirection>("desc")
     const [accidentSeverityFilter, setAccidentSeverityFilter] = useState<string>("all")
+    const [accidentSortField, setAccidentSortField] = useState<"date" | "cost">("date")
+    const [accidentSortDirection, setAccidentSortDirection] = useState<SortDirection>("desc")
 
     // Fetch initial data and when filters change
     useEffect(() => {
@@ -123,6 +126,11 @@ export default function CarsPage() {
             limit: ITEMS_PER_PAGE,
         })
     }, [selectedManufacturer, selectedFuelType, selectedYear, priceRange, currentPage, searchCars])
+
+    // Sync page input value with current page
+    useEffect(() => {
+        setPageInputValue(currentPage.toString())
+    }, [currentPage])
 
     // Transform backend data
     const cars = useMemo(() => {
@@ -232,12 +240,28 @@ export default function CarsPage() {
         })
     }, [selectedCarWithHistory, serviceSortField, serviceSortDirection])
 
-    // Filtered Accidents
-    const filteredAccidents = useMemo(() => {
+    // Filtered and Sorted Accidents
+    const filteredAndSortedAccidents = useMemo(() => {
         if (!selectedCarWithHistory) return []
-        if (accidentSeverityFilter === "all") return selectedCarWithHistory.Accidents
-        return selectedCarWithHistory.Accidents.filter((a) => a.Severity === accidentSeverityFilter)
-    }, [selectedCarWithHistory, accidentSeverityFilter])
+
+        // First filter by severity
+        let accidents = selectedCarWithHistory.Accidents
+        if (accidentSeverityFilter !== "all") {
+            accidents = accidents.filter((a) => a.Severity === accidentSeverityFilter)
+        }
+
+        // Then sort
+        return [...accidents].sort((a, b) => {
+            if (accidentSortField === "date") {
+                return accidentSortDirection === "desc"
+                    ? new Date(b.DateOfAccident).getTime() - new Date(a.DateOfAccident).getTime()
+                    : new Date(a.DateOfAccident).getTime() - new Date(b.DateOfAccident).getTime()
+            }
+            return accidentSortDirection === "desc"
+                ? b.CostOfRepair - a.CostOfRepair
+                : a.CostOfRepair - b.CostOfRepair
+        })
+    }, [selectedCarWithHistory, accidentSeverityFilter, accidentSortField, accidentSortDirection])
 
     // Calculate summaries for selected car
     const carSummary = useMemo(() => {
@@ -277,10 +301,10 @@ export default function CarsPage() {
     }, [selectedCarWithHistory])
 
     const fuelTypeColors: Record<string, string> = {
-        Petrol: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-        Diesel: "bg-slate-500/20 text-slate-300 border-slate-500/30",
-        Hybrid: "bg-teal-500/20 text-teal-400 border-teal-500/30",
-        Electric: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+        Petrol: "bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/30",
+        Diesel: "bg-slate-500/20 text-slate-700 dark:text-slate-300 border-slate-500/30",
+        Hybrid: "bg-teal-500/20 text-teal-700 dark:text-teal-400 border-teal-500/30",
+        Electric: "bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-500/30",
     }
 
     const severityColors: Record<string, string> = {
@@ -326,7 +350,7 @@ export default function CarsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="h-screen bg-background flex flex-col overflow-hidden">
             <Header
                 title="Cars"
                 subtitle="Browse and explore vehicle inventory"
@@ -345,9 +369,9 @@ export default function CarsPage() {
                 onReset={handleResetFilters}
             />
 
-            <div className="p-6">
-                <Card className="bg-card border-border">
-                    <CardHeader className="pb-4">
+            <div className="flex-1 p-6 overflow-hidden flex flex-col">
+                <Card className="bg-card border-border flex-1 flex flex-col overflow-hidden">
+                    <CardHeader className="pb-4 flex-shrink-0">
                         <div className="flex items-center justify-between flex-wrap gap-4">
                             <CardTitle className="text-base flex items-center gap-2">
                                 <Car className="h-4 w-4 text-primary" />
@@ -370,9 +394,9 @@ export default function CarsPage() {
                             </div>
                         </div>
                     </CardHeader>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 flex-1 flex flex-col min-h-0">
                         {/* Advanced Filters */}
-                        <div className="px-6 pb-4 space-y-4 border-b border-border">
+                        <div className="px-6 pb-4 space-y-4 border-b border-border flex-shrink-0">
                             {/* Price & Mileage Sliders */}
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-2">
@@ -387,7 +411,8 @@ export default function CarsPage() {
                                         max={filterOptions.priceRange.max}
                                         step={1000}
                                         value={priceRange}
-                                        onValueChange={(value) => {
+                                        onValueChange={(value) => setPriceRange(value as [number, number])}
+                                        onValueCommit={(value) => {
                                             setPriceRange(value as [number, number])
                                             setCurrentPage(1)
                                         }}
@@ -405,7 +430,8 @@ export default function CarsPage() {
                                         max={filterOptions.mileageRange.max}
                                         step={1000}
                                         value={mileageRange}
-                                        onValueChange={(value) => {
+                                        onValueChange={(value) => setMileageRange(value as [number, number])}
+                                        onValueCommit={(value) => {
                                             setMileageRange(value as [number, number])
                                             setCurrentPage(1)
                                         }}
@@ -469,68 +495,70 @@ export default function CarsPage() {
                             </div>
                         </div>
 
-                        <ScrollArea className="h-[calc(100vh-340px)]">
-                            <Table>
-                                <TableHeader className="sticky top-0 bg-card z-10">
-                                    <TableRow className="border-border hover:bg-transparent">
-                                        <TableHead>
-                                            <SortButton field="CarID">Car ID</SortButton>
-                                        </TableHead>
-                                        <TableHead>
-                                            <SortButton field="Manufacturer">Manufacturer</SortButton>
-                                        </TableHead>
-                                        <TableHead>Model</TableHead>
-                                        <TableHead>
-                                            <SortButton field="Year">Year</SortButton>
-                                        </TableHead>
-                                        <TableHead>
-                                            <SortButton field="Price">Price</SortButton>
-                                        </TableHead>
-                                        <TableHead>Fuel</TableHead>
-                                        <TableHead>
-                                            <SortButton field="Accidents">Accidents</SortButton>
-                                        </TableHead>
-                                        <TableHead>
-                                            <SortButton field="Services">Services</SortButton>
-                                        </TableHead>
-                                        <TableHead>Dealer</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredCars.map((car) => (
-                                        <TableRow
-                                            key={car.CarID}
-                                            className="border-border cursor-pointer transition-colors hover:bg-muted/50"
-                                            onClick={() => handleCarSelect(car)}
-                                        >
-                                            <TableCell className="font-mono text-xs text-primary">{car.CarID}</TableCell>
-                                            <TableCell className="font-medium">{car.Manufacturer}</TableCell>
-                                            <TableCell>{car.Model}</TableCell>
-                                            <TableCell>{car.YearOfManufacturing}</TableCell>
-                                            <TableCell className="font-semibold text-accent">£{car.Price.toLocaleString()}</TableCell>
-                                            <TableCell>
-                                                <Badge variant="outline" className={fuelTypeColors[car.FuelType]}>
-                                                    {car.FuelType}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={car.Accidents.length > 0 ? "destructive" : "secondary"} className="text-xs">
-                                                    {car.Accidents.length}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant="secondary" className="text-xs">
-                                                    {car.ServiceHistory.length}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-sm text-muted-foreground">{car.DealerName}</TableCell>
+                        <div className="flex-1 min-h-0">
+                            <ScrollArea className="h-full">
+                                <Table>
+                                    <TableHeader className="sticky top-0 bg-card z-10">
+                                        <TableRow className="border-border hover:bg-transparent">
+                                            <TableHead>
+                                                <SortButton field="CarID">Car ID</SortButton>
+                                            </TableHead>
+                                            <TableHead>
+                                                <SortButton field="Manufacturer">Manufacturer</SortButton>
+                                            </TableHead>
+                                            <TableHead>Model</TableHead>
+                                            <TableHead>
+                                                <SortButton field="Year">Year</SortButton>
+                                            </TableHead>
+                                            <TableHead>
+                                                <SortButton field="Price">Price</SortButton>
+                                            </TableHead>
+                                            <TableHead>Fuel</TableHead>
+                                            <TableHead>
+                                                <SortButton field="Accidents">Accidents</SortButton>
+                                            </TableHead>
+                                            <TableHead>
+                                                <SortButton field="Services">Services</SortButton>
+                                            </TableHead>
+                                            <TableHead>Dealer</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </ScrollArea>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredCars.map((car) => (
+                                            <TableRow
+                                                key={car.CarID}
+                                                className="border-border cursor-pointer transition-colors hover:bg-muted/50"
+                                                onClick={() => handleCarSelect(car)}
+                                            >
+                                                <TableCell className="font-mono text-xs text-primary">{car.CarID}</TableCell>
+                                                <TableCell className="font-medium">{car.Manufacturer}</TableCell>
+                                                <TableCell>{car.Model}</TableCell>
+                                                <TableCell>{car.YearOfManufacturing}</TableCell>
+                                                <TableCell className="font-semibold text-emerald-600 dark:text-emerald-400">£{car.Price.toLocaleString()}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className={fuelTypeColors[car.FuelType]}>
+                                                        {car.FuelType}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={car.Accidents.length > 0 ? "destructive" : "secondary"} className="text-xs">
+                                                        {car.Accidents.length}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="secondary" className="text-xs">
+                                                        {car.ServiceHistory.length}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-sm text-muted-foreground">{car.DealerName}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </ScrollArea>
+                        </div>
 
-                        <div className="px-6 py-4 border-t border-border flex items-center justify-between">
+                        <div className="px-6 py-4 border-t border-border flex items-center justify-between flex-shrink-0">
                             <p className="text-sm text-muted-foreground">
                                 Showing {filteredCars.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} -{" "}
                                 {Math.min(currentPage * ITEMS_PER_PAGE, totalCars)} of {totalCars} vehicles
@@ -550,11 +578,25 @@ export default function CarsPage() {
                                         type="number"
                                         min={1}
                                         max={totalPages || 1}
-                                        value={currentPage}
-                                        onChange={(e) => {
+                                        value={pageInputValue}
+                                        onChange={(e) => setPageInputValue(e.target.value)}
+                                        onBlur={(e) => {
                                             const page = parseInt(e.target.value)
-                                            if (page >= 1 && page <= (totalPages || 1)) {
+                                            if (!isNaN(page) && page >= 1 && page <= (totalPages || 1)) {
                                                 setCurrentPage(page)
+                                            } else {
+                                                setPageInputValue(currentPage.toString())
+                                            }
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                                const page = parseInt(pageInputValue)
+                                                if (!isNaN(page) && page >= 1 && page <= (totalPages || 1)) {
+                                                    setCurrentPage(page)
+                                                    e.currentTarget.blur()
+                                                } else {
+                                                    setPageInputValue(currentPage.toString())
+                                                }
                                             }
                                         }}
                                         className="h-8 w-16 text-center text-sm"
@@ -656,10 +698,10 @@ export default function CarsPage() {
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 col-span-2">
-                                                            <PoundSterling className="h-4 w-4 text-accent" />
+                                                            <PoundSterling className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                                                             <div>
                                                                 <p className="text-xs text-muted-foreground">Price</p>
-                                                                <p className="text-lg font-bold text-accent">£{selectedCar.Price.toLocaleString()}</p>
+                                                                <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">£{selectedCar.Price.toLocaleString()}</p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -790,7 +832,7 @@ export default function CarsPage() {
                                                                     <TableCell className="text-xs">{service.DateOfService}</TableCell>
                                                                     <TableCell className="text-xs">{service.ServiceType}</TableCell>
                                                                     <TableCell className="text-xs text-right font-semibold">
-                                                                        £{service.CostOfService}
+                                                                        £{service.CostOfService.toLocaleString()}
                                                                     </TableCell>
                                                                 </TableRow>
                                                             ))}
@@ -808,20 +850,30 @@ export default function CarsPage() {
                                             <TabsContent value="accidents" className="p-6 mt-0">
                                                 <div className="flex items-center justify-between mb-4">
                                                     <h4 className="text-sm font-semibold">Accident Records</h4>
-                                                    <Select value={accidentSeverityFilter} onValueChange={setAccidentSeverityFilter}>
-                                                        <SelectTrigger className="h-7 text-xs w-[120px]">
-                                                            <SelectValue placeholder="Severity" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="all">All</SelectItem>
-                                                            <SelectItem value="Minor">Minor</SelectItem>
-                                                            <SelectItem value="Moderate">Moderate</SelectItem>
-                                                            <SelectItem value="Major">Major</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs text-muted-foreground">Sort by:</span>
+                                                        <Select
+                                                            value={`${accidentSortField}-${accidentSortDirection}`}
+                                                            onValueChange={(v) => {
+                                                                const [field, dir] = v.split("-") as ["date" | "cost", SortDirection]
+                                                                setAccidentSortField(field)
+                                                                setAccidentSortDirection(dir)
+                                                            }}
+                                                        >
+                                                            <SelectTrigger className="h-7 text-xs w-[120px]">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="date-desc">Date (Newest)</SelectItem>
+                                                                <SelectItem value="date-asc">Date (Oldest)</SelectItem>
+                                                                <SelectItem value="cost-desc">Cost (High)</SelectItem>
+                                                                <SelectItem value="cost-asc">Cost (Low)</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
                                                 </div>
 
-                                                {filteredAccidents.length > 0 ? (
+                                                {filteredAndSortedAccidents.length > 0 ? (
                                                     <Table>
                                                         <TableHeader>
                                                             <TableRow className="border-border">
@@ -833,11 +885,11 @@ export default function CarsPage() {
                                                             </TableRow>
                                                         </TableHeader>
                                                         <TableBody>
-                                                            {filteredAccidents.map((accident) => (
+                                                            {filteredAndSortedAccidents.map((accident) => (
                                                                 <TableRow key={accident.AccidentID} className="border-border">
                                                                     <TableCell className="font-mono text-xs">{accident.AccidentID}</TableCell>
                                                                     <TableCell className="text-xs">{accident.DateOfAccident}</TableCell>
-                                                                    <TableCell className="text-xs max-w-[150px] truncate" title={accident.Description}>
+                                                                    <TableCell className="text-xs w-[150px] break-words whitespace-normal">
                                                                         {accident.Description}
                                                                     </TableCell>
                                                                     <TableCell>
@@ -846,7 +898,7 @@ export default function CarsPage() {
                                                                         </Badge>
                                                                     </TableCell>
                                                                     <TableCell className="text-xs text-right font-semibold">
-                                                                        £{accident.CostOfRepair}
+                                                                        £{accident.CostOfRepair.toLocaleString()}
                                                                     </TableCell>
                                                                 </TableRow>
                                                             ))}

@@ -8,11 +8,11 @@ export function FuelTypePieChart() {
   const { data, isLoading, error } = useGetByFuelTypeQuery()
 
   const COLORS = [
-    "oklch(0.65 0.18 250)", // Primary blue
-    "oklch(0.55 0.2 160)", // Accent teal
-    "oklch(0.65 0.2 45)", // Orange
-    "oklch(0.6 0.2 330)", // Pink
-    "oklch(0.7 0.15 200)", // Light blue
+    "oklch(0.45 0.18 230)", // Deep blue
+    "oklch(0.5 0.16 215)", // Medium blue
+    "oklch(0.4 0.2 240)", // Dark blue
+    "oklch(0.55 0.14 200)", // Light cyan
+    "oklch(0.35 0.15 250)", // Navy blue
   ]
 
   return (
@@ -48,17 +48,17 @@ export function FuelTypePieChart() {
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "oklch(0.17 0.01 260)",
-                    border: "1px solid oklch(0.28 0.01 260)",
+                    backgroundColor: "oklch(1 0 0)",
+                    border: "1px solid oklch(0.88 0 0)",
                     borderRadius: "8px",
-                    color: "oklch(0.95 0.01 260)",
+                    color: "oklch(0.145 0 0)",
                   }}
-                  labelStyle={{ color: "oklch(0.95 0.01 260)" }}
-                  itemStyle={{ color: "oklch(0.95 0.01 260)" }}
+                  labelStyle={{ color: "oklch(0.145 0 0)" }}
+                  itemStyle={{ color: "oklch(0.145 0 0)" }}
                 />
                 <Legend
-                  wrapperStyle={{ color: "oklch(0.65 0.01 260)", fontSize: 12 }}
-                  formatter={(value) => <span style={{ color: "oklch(0.95 0.01 260)" }}>{value}</span>}
+                  wrapperStyle={{ color: "oklch(0.45 0 0)", fontSize: 12 }}
+                  formatter={(value) => <span style={{ color: "oklch(0.145 0 0)" }}>{value}</span>}
                 />
               </PieChart>
             </ResponsiveContainer>

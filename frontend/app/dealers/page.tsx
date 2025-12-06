@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useMemo, useState } from "react"
-import { useFilters } from "@/lib/filter-context"
 import { Header } from "@/components/layout/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Building2, Car, MapPin, DollarSign, Search, ArrowUpDown, X } from "lucide-react"
+import { useGetDealersQuery, useGetDealerInventoryQuery } from "@/store/services/dealersApi"
+import { useGetOverviewQuery } from "@/store/services/analyticsApi"
 import {
     XAxis,
     YAxis,
@@ -21,89 +22,43 @@ import {
     Cell,
     PieChart,
     Pie,
-    LineChart,
-    Line,
+    BarChart,
+    Bar,
 } from "recharts"
 
 interface DealerStats {
-    id: string
+    dealer_id: string
     name: string
     city: string
     latitude: number
     longitude: number
-    totalCars: number
-    avgPrice: number
-    totalValue: number
-    fuelDistribution: Record<string, number>
-    yearPriceData: { year: number; avgPrice: number }[]
+    total_cars: number
+    average_price: number
 }
 
-type SortField = "name" | "city" | "totalCars" | "avgPrice"
+type SortField = "name" | "city" | "total_cars" | "average_price"
 type SortDirection = "asc" | "desc"
 
 export default function DealersPage() {
-    const { filters, setFilter, resetFilters, filteredData, filterOptions } = useFilters()
     const [searchQuery, setSearchQuery] = useState("")
-    const [sortField, setSortField] = useState<SortField>("totalCars")
+    const [sortField, setSortField] = useState<SortField>("total_cars")
     const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
-    const [selectedDealer, setSelectedDealer] = useState<DealerStats | null>(null)
+    const [selectedDealerId, setSelectedDealerId] = useState<string | null>(null)
 
-    const dealerStats = useMemo(() => {
-        const stats: Record<string, DealerStats> = {}
-        let dealerIndex = 1
+    // Fetch dealers from backend
+    const { data: dealersData, isLoading: dealersLoading, error: dealersError } = useGetDealersQuery()
+    const { data: overviewData } = useGetOverviewQuery()
 
-        filteredData.forEach((car) => {
-            if (!stats[car.DealerName]) {
-                stats[car.DealerName] = {
-                    id: `DLR${String(dealerIndex++).padStart(3, "0")}`,
-                    name: car.DealerName,
-                    city: car.DealerCity,
-                    latitude: car.Latitude,
-                    longitude: car.Longitude,
-                    totalCars: 0,
-                    avgPrice: 0,
-                    totalValue: 0,
-                    fuelDistribution: {},
-                    yearPriceData: [],
-                }
-            }
+    // Fetch inventory for selected dealer
+    const { data: inventoryData, isLoading: inventoryLoading } = useGetDealerInventoryQuery(
+        { id: selectedDealerId!, page: 1, limit: 100 },
+        { skip: !selectedDealerId }
+    )
 
-            stats[car.DealerName].totalCars += 1
-            stats[car.DealerName].totalValue += car.Price
-            stats[car.DealerName].fuelDistribution[car.FuelType] =
-                (stats[car.DealerName].fuelDistribution[car.FuelType] || 0) + 1
-        })
-
-        // Calculate avg price and year-price data for each dealer
-        Object.keys(stats).forEach((dealerName) => {
-            const dealer = stats[dealerName]
-            dealer.avgPrice = Math.round(dealer.totalValue / dealer.totalCars)
-
-            // Calculate avg price by year
-            const yearData: Record<number, { total: number; count: number }> = {}
-            filteredData
-                .filter((car) => car.DealerName === dealerName)
-                .forEach((car) => {
-                    if (!yearData[car.Year]) {
-                        yearData[car.Year] = { total: 0, count: 0 }
-                    }
-                    yearData[car.Year].total += car.Price
-                    yearData[car.Year].count += 1
-                })
-
-            dealer.yearPriceData = Object.entries(yearData)
-                .map(([year, data]) => ({
-                    year: Number.parseInt(year),
-                    avgPrice: Math.round(data.total / data.count),
-                }))
-                .sort((a, b) => a.year - b.year)
-        })
-
-        return Object.values(stats)
-    }, [filteredData])
+    const dealers = dealersData?.data || []
 
     const filteredDealers = useMemo(() => {
-        let result = dealerStats
+        let result = [...dealers]
 
         if (searchQuery) {
             const query = searchQuery.toLowerCase()
@@ -122,18 +77,18 @@ export default function DealersPage() {
                 case "city":
                     comparison = a.city.localeCompare(b.city)
                     break
-                case "totalCars":
-                    comparison = a.totalCars - b.totalCars
+                case "total_cars":
+                    comparison = (a.statistics?.total_cars || 0) - (b.statistics?.total_cars || 0)
                     break
-                case "avgPrice":
-                    comparison = a.avgPrice - b.avgPrice
+                case "average_price":
+                    comparison = (a.statistics?.average_price || 0) - (b.statistics?.average_price || 0)
                     break
             }
             return sortDirection === "desc" ? -comparison : comparison
         })
 
         return result
-    }, [dealerStats, searchQuery, sortField, sortDirection])
+    }, [dealers, searchQuery, sortField, sortDirection])
 
     const handleSort = (field: SortField) => {
         if (sortField === field) {
@@ -144,6 +99,37 @@ export default function DealersPage() {
         }
     }
 
+    const selectedDealer = dealers.find(d => d.dealer_id === selectedDealerId)
+
+    // Calculate fuel distribution from inventory
+    const fuelChartData = useMemo(() => {
+        if (!inventoryData?.data?.cars) return []
+
+        const distribution: Record<string, number> = {}
+        inventoryData.data.cars.forEach((car: any) => {
+            const fuelType = car.specifications?.fuel_type || 'Unknown'
+            distribution[fuelType] = (distribution[fuelType] || 0) + 1
+        })
+
+        return Object.entries(distribution).map(([name, value]) => ({ name, value }))
+    }, [inventoryData])
+
+    // Calculate manufacturer distribution from inventory
+    const manufacturerChartData = useMemo(() => {
+        if (!inventoryData?.data?.cars) return []
+
+        const distribution: Record<string, number> = {}
+        inventoryData.data.cars.forEach((car: any) => {
+            const manufacturer = car.manufacturer || 'Unknown'
+            distribution[manufacturer] = (distribution[manufacturer] || 0) + 1
+        })
+
+        return Object.entries(distribution)
+            .map(([manufacturer, count]) => ({ manufacturer, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5)
+    }, [inventoryData])
+
     const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
         <TableHead className="cursor-pointer hover:text-foreground transition-colors" onClick={() => handleSort(field)}>
             <div className="flex items-center gap-1">
@@ -153,29 +139,39 @@ export default function DealersPage() {
         </TableHead>
     )
 
-    // Chart colors
-    const FUEL_COLORS = ["oklch(0.65 0.18 250)", "oklch(0.55 0.2 160)", "oklch(0.65 0.2 45)", "oklch(0.6 0.2 330)"]
+    // Chart colors - deep blue theme
+    const COLORS = [
+        "oklch(0.45 0.18 230)",
+        "oklch(0.5 0.16 215)",
+        "oklch(0.4 0.2 240)",
+        "oklch(0.55 0.14 200)",
+        "oklch(0.35 0.15 250)",
+    ]
 
-    // Fuel chart data for selected dealer
-    const fuelChartData = selectedDealer
-        ? Object.entries(selectedDealer.fuelDistribution).map(([name, value]) => ({
-            name,
-            value,
-        }))
-        : []
+    if (dealersLoading) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        )
+    }
+
+    if (dealersError) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-lg text-muted-foreground">Failed to load dealers</p>
+                    <p className="text-sm text-muted-foreground mt-2">Please check if the backend is running</p>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="min-h-screen bg-background">
             <Header
                 title="Dealers"
                 subtitle="Dealer network and performance analytics"
-                filters={{
-                    cities: filterOptions.cities,
-                    fuelTypes: filterOptions.fuelTypes,
-                }}
-                selectedFilters={filters}
-                onFilterChange={setFilter}
-                onReset={resetFilters}
             />
 
             <div className="p-6 space-y-6">
@@ -189,7 +185,7 @@ export default function DealersPage() {
                                 </div>
                                 <div>
                                     <p className="text-xs text-muted-foreground">Total Dealers</p>
-                                    <p className="text-xl font-semibold">{dealerStats.length}</p>
+                                    <p className="text-xl font-semibold">{dealers.length}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -201,8 +197,8 @@ export default function DealersPage() {
                                     <Car className="h-5 w-5 text-accent" />
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Total Inventory</p>
-                                    <p className="text-xl font-semibold">{filteredData.length}</p>
+                                    <p className="text-xs text-muted-foreground">Total Cars</p>
+                                    <p className="text-xl font-semibold">{overviewData?.data?.total_cars || 0}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -214,9 +210,11 @@ export default function DealersPage() {
                                     <DollarSign className="h-5 w-5 text-chart-3" />
                                 </div>
                                 <div>
-                                    <p className="text-xs text-muted-foreground">Total Value</p>
+                                    <p className="text-xs text-muted-foreground">Avg Dealer Size</p>
                                     <p className="text-xl font-semibold">
-                                        £{Math.round(filteredData.reduce((sum, c) => sum + c.Price, 0) / 1000)}K
+                                        {dealers.length > 0
+                                            ? Math.round(dealers.reduce((sum, d) => sum + (d.statistics?.total_cars || 0), 0) / dealers.length)
+                                            : 0}
                                     </p>
                                 </div>
                             </div>
@@ -231,10 +229,7 @@ export default function DealersPage() {
                                 <div>
                                     <p className="text-xs text-muted-foreground">Avg Price</p>
                                     <p className="text-xl font-semibold">
-                                        £
-                                        {Math.round(
-                                            filteredData.reduce((sum, c) => sum + c.Price, 0) / filteredData.length,
-                                        ).toLocaleString()}
+                                        £{overviewData?.data?.average_price?.toLocaleString() || 0}
                                     </p>
                                 </div>
                             </div>
@@ -283,8 +278,8 @@ export default function DealersPage() {
                                         <TableHead className="w-[100px]">Dealer ID</TableHead>
                                         <SortableHeader field="name">Dealer Name</SortableHeader>
                                         <SortableHeader field="city">City</SortableHeader>
-                                        <SortableHeader field="totalCars">Total Cars</SortableHeader>
-                                        <SortableHeader field="avgPrice">Avg Price</SortableHeader>
+                                        <SortableHeader field="total_cars">Total Cars</SortableHeader>
+                                        <SortableHeader field="average_price">Avg Price</SortableHeader>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -297,11 +292,13 @@ export default function DealersPage() {
                                     ) : (
                                         filteredDealers.map((dealer) => (
                                             <TableRow
-                                                key={dealer.id}
+                                                key={dealer.dealer_id}
                                                 className="cursor-pointer hover:bg-muted/50 transition-colors"
-                                                onClick={() => setSelectedDealer(dealer)}
+                                                onClick={() => setSelectedDealerId(dealer.dealer_id)}
                                             >
-                                                <TableCell className="font-mono text-xs text-muted-foreground">{dealer.id}</TableCell>
+                                                <TableCell className="font-mono text-xs text-muted-foreground">
+                                                    {dealer.dealer_id}
+                                                </TableCell>
                                                 <TableCell className="font-medium">{dealer.name}</TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-1.5">
@@ -310,9 +307,11 @@ export default function DealersPage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant="secondary">{dealer.totalCars}</Badge>
+                                                    <Badge variant="secondary">{dealer.statistics?.total_cars || 0}</Badge>
                                                 </TableCell>
-                                                <TableCell className="font-semibold text-accent">£{dealer.avgPrice.toLocaleString()}</TableCell>
+                                                <TableCell className="font-semibold text-primary">
+                                                    £{dealer.statistics?.average_price?.toLocaleString() || 0}
+                                                </TableCell>
                                             </TableRow>
                                         ))
                                     )}
@@ -324,7 +323,7 @@ export default function DealersPage() {
             </div>
 
             {/* Dealer Detail Modal */}
-            <Dialog open={!!selectedDealer} onOpenChange={(open) => !open && setSelectedDealer(null)}>
+            <Dialog open={!!selectedDealerId} onOpenChange={(open) => !open && setSelectedDealerId(null)}>
                 <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col bg-card border-border">
                     <DialogHeader className="pb-4 border-b border-border">
                         <DialogTitle className="text-xl flex items-center gap-2">
@@ -339,121 +338,136 @@ export default function DealersPage() {
 
                     {selectedDealer && (
                         <div className="flex-1 overflow-y-auto p-1 space-y-6">
-                            {/* Dealer Info */}
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                <div className="p-4 rounded-lg bg-muted/50">
-                                    <p className="text-xs text-muted-foreground mb-1">Total Cars</p>
-                                    <p className="text-2xl font-bold">{selectedDealer.totalCars}</p>
+                            {inventoryLoading ? (
+                                <div className="flex items-center justify-center h-64">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                                 </div>
-                                <div className="p-4 rounded-lg bg-muted/50">
-                                    <p className="text-xs text-muted-foreground mb-1">Avg Price</p>
-                                    <p className="text-2xl font-bold text-accent">£{(selectedDealer.avgPrice / 1000).toFixed(1)}K</p>
-                                </div>
-                                <div className="p-4 rounded-lg bg-muted/50">
-                                    <p className="text-xs text-muted-foreground mb-1">Total Value</p>
-                                    <p className="text-2xl font-bold">£{Math.round(selectedDealer.totalValue / 1000)}K</p>
-                                </div>
-                                <div className="p-4 rounded-lg bg-muted/50">
-                                    <p className="text-xs text-muted-foreground mb-1">Location</p>
-                                    <p className="text-sm font-mono">
-                                        {selectedDealer.latitude.toFixed(4)}, {selectedDealer.longitude.toFixed(4)}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Charts */}
-                            <div className="grid md:grid-cols-2 gap-6">
-                                {/* Fuel Type Distribution */}
-                                <Card className="bg-muted/30 border-border">
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Fuel Type Distribution</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="h-[200px]">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <PieChart>
-                                                    <Pie
-                                                        data={fuelChartData}
-                                                        cx="50%"
-                                                        cy="50%"
-                                                        innerRadius={45}
-                                                        outerRadius={75}
-                                                        paddingAngle={3}
-                                                        dataKey="value"
-                                                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                                        labelLine={false}
-                                                    >
-                                                        {fuelChartData.map((_, index) => (
-                                                            <Cell key={`cell-${index}`} fill={FUEL_COLORS[index % FUEL_COLORS.length]} />
-                                                        ))}
-                                                    </Pie>
-                                                    <Tooltip
-                                                        contentStyle={{
-                                                            backgroundColor: "oklch(0.17 0.01 260)",
-                                                            border: "1px solid oklch(0.28 0.01 260)",
-                                                            borderRadius: "8px",
-                                                            color: "oklch(0.95 0.01 260)",
-                                                        }}
-                                                        labelStyle={{ color: "oklch(0.95 0.01 260)" }}
-                                                        itemStyle={{ color: "oklch(0.85 0.01 260)" }}
-                                                        formatter={(value) => [`${value} vehicles`, "Count"]}
-                                                    />
-                                                </PieChart>
-                                            </ResponsiveContainer>
+                            ) : (
+                                <>
+                                    {/* Dealer Info */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                        <div className="p-4 rounded-lg bg-muted/50">
+                                            <p className="text-xs text-muted-foreground mb-1">Total Cars</p>
+                                            <p className="text-2xl font-bold">{selectedDealer.statistics?.total_cars || 0}</p>
                                         </div>
-                                    </CardContent>
-                                </Card>
-
-                                {/* Avg Price by Year */}
-                                <Card className="bg-muted/30 border-border">
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Avg Price by Manufacturing Year</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="h-[200px]">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <LineChart
-                                                    data={selectedDealer.yearPriceData}
-                                                    margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
-                                                >
-                                                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.28 0.01 260)" vertical={false} />
-                                                    <XAxis
-                                                        dataKey="year"
-                                                        tick={{ fill: "oklch(0.65 0.01 260)", fontSize: 11 }}
-                                                        axisLine={{ stroke: "oklch(0.28 0.01 260)" }}
-                                                        tickLine={false}
-                                                    />
-                                                    <YAxis
-                                                        tick={{ fill: "oklch(0.65 0.01 260)", fontSize: 11 }}
-                                                        axisLine={false}
-                                                        tickLine={false}
-                                                        tickFormatter={(value) => `£${(value / 1000).toFixed(0)}K`}
-                                                    />
-                                                    <Tooltip
-                                                        contentStyle={{
-                                                            backgroundColor: "oklch(0.17 0.01 260)",
-                                                            border: "1px solid oklch(0.28 0.01 260)",
-                                                            borderRadius: "8px",
-                                                        }}
-                                                        labelStyle={{ color: "oklch(0.95 0.01 260)" }}
-                                                        itemStyle={{ color: "oklch(0.85 0.01 260)" }}
-                                                        formatter={(value) => [`£${Number(value).toLocaleString()}`, "Avg Price"]}
-                                                        labelFormatter={(label) => `Year: ${label}`}
-                                                    />
-                                                    <Line
-                                                        type="monotone"
-                                                        dataKey="avgPrice"
-                                                        stroke="oklch(0.55 0.2 160)"
-                                                        strokeWidth={2}
-                                                        dot={{ fill: "oklch(0.55 0.2 160)", strokeWidth: 0, r: 4 }}
-                                                        activeDot={{ r: 6, fill: "oklch(0.55 0.2 160)" }}
-                                                    />
-                                                </LineChart>
-                                            </ResponsiveContainer>
+                                        <div className="p-4 rounded-lg bg-muted/50">
+                                            <p className="text-xs text-muted-foreground mb-1">Avg Price</p>
+                                            <p className="text-2xl font-bold text-primary">
+                                                £{((selectedDealer.statistics?.average_price || 0) / 1000).toFixed(1)}K
+                                            </p>
                                         </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
+                                        <div className="p-4 rounded-lg bg-muted/50">
+                                            <p className="text-xs text-muted-foreground mb-1">In Stock</p>
+                                            <p className="text-2xl font-bold">{inventoryData?.data?.cars?.length || 0}</p>
+                                        </div>
+                                        <div className="p-4 rounded-lg bg-muted/50">
+                                            <p className="text-xs text-muted-foreground mb-1">Location</p>
+                                            <p className="text-sm font-mono">
+                                                {selectedDealer.location?.coordinates?.[1]?.toFixed(4)},{" "}
+                                                {selectedDealer.location?.coordinates?.[0]?.toFixed(4)}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Charts */}
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        {/* Fuel Type Distribution */}
+                                        <Card className="bg-muted/30 border-border">
+                                            <CardHeader className="pb-2">
+                                                <CardTitle className="text-sm">Fuel Type Distribution</CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="h-[200px]">
+                                                    {fuelChartData.length > 0 ? (
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                            <PieChart>
+                                                                <Pie
+                                                                    data={fuelChartData}
+                                                                    cx="50%"
+                                                                    cy="50%"
+                                                                    innerRadius={45}
+                                                                    outerRadius={75}
+                                                                    paddingAngle={3}
+                                                                    dataKey="value"
+                                                                    label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                                                                    labelLine={false}
+                                                                >
+                                                                    {fuelChartData.map((_, index) => (
+                                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                                    ))}
+                                                                </Pie>
+                                                                <Tooltip
+                                                                    contentStyle={{
+                                                                        backgroundColor: "oklch(1 0 0)",
+                                                                        border: "1px solid oklch(0.88 0 0)",
+                                                                        borderRadius: "8px",
+                                                                        color: "oklch(0.145 0 0)",
+                                                                    }}
+                                                                    labelStyle={{ color: "oklch(0.145 0 0)" }}
+                                                                    itemStyle={{ color: "oklch(0.145 0 0)" }}
+                                                                    formatter={(value) => [`${value} vehicles`, "Count"]}
+                                                                />
+                                                            </PieChart>
+                                                        </ResponsiveContainer>
+                                                    ) : (
+                                                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                                                            No data available
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+
+                                        {/* Top Manufacturers */}
+                                        <Card className="bg-muted/30 border-border">
+                                            <CardHeader className="pb-2">
+                                                <CardTitle className="text-sm">Top Manufacturers</CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="h-[200px]">
+                                                    {manufacturerChartData.length > 0 ? (
+                                                        <ResponsiveContainer width="100%" height="100%">
+                                                            <BarChart
+                                                                data={manufacturerChartData}
+                                                                margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                                                            >
+                                                                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.88 0 0)" vertical={false} />
+                                                                <XAxis
+                                                                    dataKey="manufacturer"
+                                                                    tick={{ fill: "oklch(0.45 0 0)", fontSize: 11 }}
+                                                                    axisLine={{ stroke: "oklch(0.88 0 0)" }}
+                                                                    tickLine={false}
+                                                                />
+                                                                <YAxis
+                                                                    tick={{ fill: "oklch(0.45 0 0)", fontSize: 11 }}
+                                                                    axisLine={false}
+                                                                    tickLine={false}
+                                                                />
+                                                                <Tooltip
+                                                                    contentStyle={{
+                                                                        backgroundColor: "oklch(1 0 0)",
+                                                                        border: "1px solid oklch(0.88 0 0)",
+                                                                        borderRadius: "8px",
+                                                                        color: "oklch(0.145 0 0)",
+                                                                    }}
+                                                                    labelStyle={{ color: "oklch(0.145 0 0)" }}
+                                                                    itemStyle={{ color: "oklch(0.145 0 0)" }}
+                                                                    formatter={(value) => [`${value} cars`, "Count"]}
+                                                                />
+                                                                <Bar dataKey="count" fill="oklch(0.45 0.18 230)" radius={[4, 4, 0, 0]} />
+                                                            </BarChart>
+                                                        </ResponsiveContainer>
+                                                    ) : (
+                                                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                                                            No data available
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
                 </DialogContent>
