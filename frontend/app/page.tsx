@@ -11,10 +11,12 @@ import { DealerSalesChart } from "@/components/dashboard/charts/dealer-sales-cha
 export default function DashboardPage() {
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200 px-6 py-4">
-                <h1 className="text-2xl font-bold text-gray-900">Car Sales Dashboard</h1>
-                <p className="text-sm text-gray-500 mt-1">MongoDB-based interactive data exploration</p>
+            {/* Header - same height as sidebar header (h-16) */}
+            <div className="h-16 bg-white border-b border-gray-200 px-6 flex items-center">
+                <div>
+                    <h1 className="text-xl font-bold text-gray-900">Car Sales Dashboard</h1>
+                    <p className="text-xs text-gray-500">MongoDB-based interactive data exploration</p>
+                </div>
             </div>
 
             <div className="p-6 space-y-6">
