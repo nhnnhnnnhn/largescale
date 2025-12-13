@@ -648,7 +648,87 @@ MongoDB schema differs from SQL due to:
 - Reference rarely updated shared data
 - Store detailed records in separate collections
 
-### 4.2 Embedding vs Referencing Decision Matrix
+### 4.2 Why 4 Collections?
+
+Our MongoDB design uses **4 separate collections** instead of embedding all data into a single collection:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        MONGODB COLLECTIONS                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐   ┌──────────────┐                                    │
+│  │    cars      │   │   dealers    │                                    │
+│  │  (15,000)    │──▶│    (50)      │  Reference relationship            │
+│  │              │   │              │                                    │
+│  │ • car_id     │   │ • dealer_id  │                                    │
+│  │ • specs      │   │ • name       │                                    │
+│  │ • features[] │   │ • city       │                                    │
+│  │ • dealer_id  │   │ • location{} │  GeoJSON for spatial queries       │
+│  │ • service_   │   │ • statistics │                                    │
+│  │   summary{}  │   └──────────────┘                                    │
+│  │ • accident_  │                                                       │
+│  │   summary{}  │                                                       │
+│  └──────────────┘                                                       │
+│         │                                                               │
+│         │  car_id reference                                             │
+│         ▼                                                               │
+│  ┌──────────────┐   ┌──────────────┐                                    │
+│  │  services    │   │  accidents   │                                    │
+│  │  (17,977)    │   │  (22,707)    │  Detailed records                  │
+│  │              │   │              │                                    │
+│  │ • service_id │   │ • accident_id│                                    │
+│  │ • car_id     │   │ • car_id     │                                    │
+│  │ • date       │   │ • date       │                                    │
+│  │ • type       │   │ • severity   │                                    │
+│  │ • cost       │   │ • cost       │                                    │
+│  │ • details{}  │   │ • details{}  │                                    │
+│  └──────────────┘   └──────────────┘                                    │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Lý do chi tiết cho 4 Collections:
+
+| Collection | Số lượng | Lý do tách riêng |
+|------------|----------|------------------|
+| **cars** | 15,000 | Collection chính chứa thông tin xe với embedded summaries |
+| **dealers** | 50 | Dữ liệu chia sẻ giữa nhiều xe (1 dealer → ~300 cars) |
+| **services** | 17,977 | Records chi tiết cho analytics & reporting |
+| **accidents** | 22,707 | Records chi tiết cho investigation & insurance |
+
+#### Tại sao KHÔNG embed tất cả vào cars?
+
+**Vấn đề 1: Document Size Limit**
+- MongoDB có giới hạn 16MB/document
+- Nếu embed tất cả services (17,977) và accidents (22,707) vào 1 document → Có thể vượt giới hạn
+
+**Vấn đề 2: Unbounded Arrays**
+```javascript
+// ❌ Bad: Arrays grow indefinitely over time
+{
+  "car_id": "C33554",
+  "services": [/* 100+ records */],  // Grows forever
+  "accidents": [/* 50+ records */]   // Grows forever
+}
+
+// ✅ Good: Summary embedded, details in separate collection
+{
+  "car_id": "C33554",
+  "service_summary": { "total": 5, "last_date": "2024-05-23" },  // Fixed size
+  "accident_summary": { "total": 2, "highest_severity": "Severe" } // Fixed size
+}
+```
+
+**Vấn đề 3: Query Flexibility**
+- Separate collections cho phép các queries độc lập:
+  - "Tất cả services trong tháng 12/2024"
+  - "Accidents có severity = Severe"
+  - "Tổng chi phí sửa chữa theo loại service"
+
+**Vấn đề 4: Update Performance**
+- Embed → Update 1 service = Rewrite entire car document
+- Separate → Update 1 service = Update only that document
+
+### 4.3 Embedding vs Referencing Decision Matrix
 
 | Data | Relationship | Access Pattern | Decision | Rationale |
 |------|-------------|----------------|----------|-----------|
@@ -659,18 +739,16 @@ MongoDB schema differs from SQL due to:
 | **Accident Summary** | One-to-Many | Often with car | **EMBED** (Summary) | • Quick access<br>• Read-optimized |
 | **Accident Details** | One-to-Many | Investigation queries | **SEPARATE** | • Detailed analysis<br>• Large data (22K records) |
 
-### 4.3 MongoDB Collections Schema
+### 4.4 MongoDB Collections Schema
 
 #### Collection 1: `cars` (Main Collection)
 
 **Purpose**: Primary collection with embedded summaries and dealer reference
 
+**Actual Sample from `mongodb_cars.json`:**
 ```json
 {
-  "_id": ObjectId("674167f9a2b8c4e5d8f91234"),
   "car_id": "C33554",
-  
-  // Basic car information
   "manufacturer": "Toyota",
   "model": "RAV4",
   "specifications": {
@@ -680,37 +758,25 @@ MongoDB schema differs from SQL due to:
     "mileage": 21317
   },
   "price": 68597.0,
-  
-  // EMBEDDED: Features array
   "features": [
     "Bluetooth",
-    "Heated Seats",
-    "Navigation",
-    "Sunroof"
+    "Heated Seats"
   ],
-  
-  // REFERENCE: Dealer ID (not embedded)
   "dealer_id": "D00001",
-  
-  // EMBEDDED: Service summary (aggregated data)
   "service_summary": {
-    "total_services": 5,
+    "total_services": 1,
     "last_service_date": "2024-05-23",
-    "total_cost": 2150.0,
+    "total_cost": 418.0,
     "last_service_type": "Major Service"
   },
-  
-  // EMBEDDED: Accident summary (aggregated data)
   "accident_summary": {
     "total_accidents": 2,
     "last_accident_date": "2025-02-25",
     "total_repair_cost": 5629.0,
     "highest_severity": "Severe"
   },
-  
-  // Metadata
-  "created_at": ISODate("2024-01-15T10:30:00Z"),
-  "updated_at": ISODate("2025-02-25T14:20:00Z")
+  "created_at": "2025-11-22T21:28:41.870111",
+  "updated_at": "2025-11-22T21:28:41.870116"
 }
 ```
 
@@ -742,32 +808,25 @@ MongoDB schema differs from SQL due to:
 
 **Purpose**: Shared dealer information with GeoJSON for location queries
 
+**Actual Sample from `mongodb_dealers.json`:**
 ```json
 {
-  "_id": ObjectId("674167f9a2b8c4e5d8f95678"),
   "dealer_id": "D00001",
   "name": "Proctor, Villarreal and Hurley",
   "city": "Gloucester",
-  
-  // GeoJSON format for geospatial queries
   "location": {
     "type": "Point",
-    "coordinates": [0.738007, 53.713263]  // [longitude, latitude]
+    "coordinates": [0.738007, 53.713263]
   },
-  
   "contact": {
-    "phone": "+44 1452 123456",
-    "email": "sales@pvh-motors.co.uk"
+    "phone": null,
+    "email": null
   },
-  
-  // Aggregated statistics
   "statistics": {
     "total_cars": 285,
-    "average_price": 13708.14,
-    "last_updated": ISODate("2025-11-22T00:00:00Z")
+    "average_price": 13708.143859649123
   },
-  
-  "created_at": ISODate("2020-03-10T00:00:00Z")
+  "created_at": "2025-11-22T21:29:06.774449"
 }
 ```
 
@@ -791,28 +850,21 @@ MongoDB schema differs from SQL due to:
 
 **Purpose**: Detailed service history for analytics and reporting
 
+**Actual Sample from `mongodb_services.json`:**
 ```json
 {
-  "_id": ObjectId("674167f9a2b8c4e5d8f9abcd"),
   "service_id": "S100854",
-  "car_id": "C33554",  // Reference to car
+  "car_id": "C33554",
   "date": "2024-05-23",
   "type": "Major Service",
   "cost": 418.0,
-  
-  // Additional details (can be extended)
   "details": {
-    "mileage_at_service": 19500,
-    "technician": "John Smith",
-    "items_replaced": [
-      "Oil Filter",
-      "Air Filter", 
-      "Spark Plugs"
-    ],
-    "next_service_due": "2024-11-23"
+    "mileage_at_service": null,
+    "technician": null,
+    "items_replaced": [],
+    "next_service_due": null
   },
-  
-  "created_at": ISODate("2024-05-23T15:30:00Z")
+  "created_at": "2024-05-23T00:00:00"
 }
 ```
 
@@ -831,28 +883,23 @@ MongoDB schema differs from SQL due to:
 
 **Purpose**: Accident investigation and insurance claims
 
+**Actual Sample from `mongodb_accidents.json`:**
 ```json
 {
-  "_id": ObjectId("674167f9a2b8c4e5d8f9def0"),
   "accident_id": "A50378",
-  "car_id": "C33554",  // Reference to car
+  "car_id": "C33554",
   "date": "2025-02-25",
   "description": "Front-end collision",
   "severity": "Major",
   "cost_of_repair": 715.0,
-  
-  // Extended details
   "details": {
-    "location": "M6 Motorway, Junction 15",
-    "weather_conditions": "Rainy",
-    "insurance_claim": true,
-    "claim_number": "CLM-2025-98765",
-    "repaired": true,
-    "repair_completion_date": "2025-03-05",
-    "garage": "Toyota Service Center"
+    "location": null,
+    "insurance_claim": null,
+    "claim_number": null,
+    "repaired": null,
+    "repair_completion_date": null
   },
-  
-  "created_at": ISODate("2025-02-25T11:45:00Z")
+  "created_at": "2025-02-25T00:00:00"
 }
 ```
 
