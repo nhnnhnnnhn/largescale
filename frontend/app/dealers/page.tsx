@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Header } from "@/components/layout/header"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -10,8 +10,10 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Building2, Car, MapPin, DollarSign, Search, ArrowUpDown, X } from "lucide-react"
-import { useGetDealersQuery, useGetDealerInventoryQuery } from "@/store/services/dealersApi"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Building2, Car, MapPin, DollarSign, Search, ArrowUpDown, X, Filter, Check, ChevronLeft, ChevronRight } from "lucide-react"
+import { useGetDealersQuery, useGetDealerInventoryQuery, useGetDealersStatsQuery } from "@/store/services/dealersApi"
 import { useGetOverviewQuery } from "@/store/services/analyticsApi"
 import {
     XAxis,
@@ -19,52 +21,98 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    Cell,
-    PieChart,
-    Pie,
     BarChart,
     Bar,
 } from "recharts"
 
 interface DealerStats {
     dealer_id: string
-    name: string
-    city: string
+    dealer_name: string
+    dealer_city: string
     latitude: number
     longitude: number
-    total_cars: number
-    average_price: number
 }
 
 type SortField = "name" | "city" | "total_cars" | "average_price"
 type SortDirection = "asc" | "desc"
 
 export default function DealersPage() {
-    const [searchQuery, setSearchQuery] = useState("")
-    const [sortField, setSortField] = useState<SortField>("total_cars")
-    const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
+    // Column filter state
+    const [dealerIdSearch, setDealerIdSearch] = useState("")
+    const [dealerNameSearch, setDealerNameSearch] = useState("")
+    const [selectedCities, setSelectedCities] = useState<string[]>([])
+
+    // Sort state
+    const [sortField, setSortField] = useState<SortField>("name")
+    const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageInputValue, setPageInputValue] = useState("1")
+    const DEALERS_PER_PAGE = 12
+
+    // Dialog state
     const [selectedDealerId, setSelectedDealerId] = useState<string | null>(null)
 
     // Fetch dealers from backend
     const { data: dealersData, isLoading: dealersLoading, error: dealersError } = useGetDealersQuery()
     const { data: overviewData } = useGetOverviewQuery()
+    const { data: dealersStatsData } = useGetDealersStatsQuery()
 
     // Fetch inventory for selected dealer
     const { data: inventoryData, isLoading: inventoryLoading } = useGetDealerInventoryQuery(
-        { id: selectedDealerId!, page: 1, limit: 100 },
+        { id: selectedDealerId!, page: 1, limit: 500 },
         { skip: !selectedDealerId }
     )
 
     const dealers = dealersData?.data || []
 
+    // Get unique cities for filter dropdown
+    const cityOptions = useMemo(() => {
+        if (dealers.length === 0) return []
+        return [...new Set(dealers.map(d => d.dealer_city))].sort()
+    }, [dealers])
+
+    // Toggle city in multi-select
+    const toggleCity = (city: string) => {
+        setSelectedCities(prev => {
+            if (prev.includes(city)) {
+                return prev.filter(c => c !== city)
+            } else {
+                return [...prev, city]
+            }
+        })
+    }
+
+    // Reset all filters
+    const handleResetFilters = () => {
+        setDealerIdSearch("")
+        setDealerNameSearch("")
+        setSelectedCities([])
+        setCurrentPage(1)
+    }
+
+    // Check if any filter is active
+    const hasActiveFilters = dealerIdSearch || dealerNameSearch || selectedCities.length > 0
+
     const filteredDealers = useMemo(() => {
         let result = [...dealers]
 
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase()
-            result = result.filter(
-                (dealer) => dealer.name.toLowerCase().includes(query) || dealer.city.toLowerCase().includes(query),
-            )
+        // Dealer ID search filter
+        if (dealerIdSearch.trim()) {
+            const query = dealerIdSearch.trim().toLowerCase()
+            result = result.filter(dealer => dealer.dealer_id.toLowerCase().includes(query))
+        }
+
+        // Dealer Name search filter
+        if (dealerNameSearch.trim()) {
+            const query = dealerNameSearch.trim().toLowerCase()
+            result = result.filter(dealer => dealer.dealer_name.toLowerCase().includes(query))
+        }
+
+        // City multi-select filter
+        if (selectedCities.length > 0) {
+            result = result.filter(dealer => selectedCities.includes(dealer.dealer_city))
         }
 
         // Sort
@@ -72,23 +120,35 @@ export default function DealersPage() {
             let comparison = 0
             switch (sortField) {
                 case "name":
-                    comparison = a.name.localeCompare(b.name)
+                    comparison = a.dealer_name.localeCompare(b.dealer_name)
                     break
                 case "city":
-                    comparison = a.city.localeCompare(b.city)
+                    comparison = a.dealer_city.localeCompare(b.dealer_city)
                     break
                 case "total_cars":
-                    comparison = (a.statistics?.total_cars || 0) - (b.statistics?.total_cars || 0)
+                    comparison = 0  // Will calculate from cars API
                     break
                 case "average_price":
-                    comparison = (a.statistics?.average_price || 0) - (b.statistics?.average_price || 0)
+                    comparison = 0  // Will calculate from cars API
                     break
             }
             return sortDirection === "desc" ? -comparison : comparison
         })
 
         return result
-    }, [dealers, searchQuery, sortField, sortDirection])
+    }, [dealers, dealerIdSearch, dealerNameSearch, selectedCities, sortField, sortDirection])
+
+    // Pagination
+    const totalPages = Math.ceil(filteredDealers.length / DEALERS_PER_PAGE)
+    const paginatedDealers = useMemo(() => {
+        const startIndex = (currentPage - 1) * DEALERS_PER_PAGE
+        return filteredDealers.slice(startIndex, startIndex + DEALERS_PER_PAGE)
+    }, [filteredDealers, currentPage])
+
+    // Sync page input with current page
+    useEffect(() => {
+        setPageInputValue(currentPage.toString())
+    }, [currentPage])
 
     const handleSort = (field: SortField) => {
         if (sortField === field) {
@@ -101,33 +161,51 @@ export default function DealersPage() {
 
     const selectedDealer = dealers.find(d => d.dealer_id === selectedDealerId)
 
-    // Calculate fuel distribution from inventory
+    // Calculate total cars and avg price from inventory
+    const dealerStats = useMemo(() => {
+        if (!inventoryData?.data) return { totalCars: 0, avgPrice: 0 }
+
+        // Use metadata.total for accurate count from database
+        const totalCars = inventoryData.data.metadata?.total || inventoryData.data.cars?.length || 0
+
+        // Calculate avg price from returned cars
+        const cars = inventoryData.data.cars || []
+        const totalPrice = cars.reduce((sum: number, car: any) => sum + (car.price || 0), 0)
+        const avgPrice = cars.length > 0 ? Math.round(totalPrice / cars.length) : 0
+
+        return { totalCars, avgPrice }
+    }, [inventoryData])
+
+    // Calculate fuel distribution from inventory - for Bar Chart
     const fuelChartData = useMemo(() => {
         if (!inventoryData?.data?.cars) return []
 
         const distribution: Record<string, number> = {}
         inventoryData.data.cars.forEach((car: any) => {
-            const fuelType = car.specifications?.fuel_type || 'Unknown'
+            const fuelType = car.fuel_type || 'Unknown'
             distribution[fuelType] = (distribution[fuelType] || 0) + 1
         })
 
-        return Object.entries(distribution).map(([name, value]) => ({ name, value }))
+        return Object.entries(distribution)
+            .map(([fuelType, count]) => ({ fuelType, count }))
+            .sort((a, b) => b.count - a.count)
     }, [inventoryData])
 
-    // Calculate manufacturer distribution from inventory
-    const manufacturerChartData = useMemo(() => {
+    // Calculate year distribution from inventory - for Bar Chart
+    const yearDistributionData = useMemo(() => {
         if (!inventoryData?.data?.cars) return []
 
-        const distribution: Record<string, number> = {}
+        const distribution: Record<number, number> = {}
         inventoryData.data.cars.forEach((car: any) => {
-            const manufacturer = car.manufacturer || 'Unknown'
-            distribution[manufacturer] = (distribution[manufacturer] || 0) + 1
+            const year = car.year_of_manufacturing || 0
+            if (year > 0) {
+                distribution[year] = (distribution[year] || 0) + 1
+            }
         })
 
         return Object.entries(distribution)
-            .map(([manufacturer, count]) => ({ manufacturer, count }))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 5)
+            .map(([year, count]) => ({ year: parseInt(year), count }))
+            .sort((a, b) => a.year - b.year)
     }, [inventoryData])
 
     const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
@@ -178,147 +256,306 @@ export default function DealersPage() {
                 {/* Stats Overview */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <Card className="bg-card border-border">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-primary/10">
+                        <CardContent className="py-1 px-2">
+                            <div className="flex items-center gap-1.5">
+                                <div className="p-1 rounded bg-primary/10">
                                     <Building2 className="h-5 w-5 text-primary" />
                                 </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Total Dealers</p>
-                                    <p className="text-xl font-semibold">{dealers.length}</p>
+                                <div className="flex items-baseline gap-1.5">
+                                    <p className="text-sm text-muted-foreground">Total Dealers</p>
+                                    <p className="text-base font-bold">{dealers.length}</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
                     <Card className="bg-card border-border">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-accent/10">
+                        <CardContent className="py-1 px-2">
+                            <div className="flex items-center gap-1.5">
+                                <div className="p-1 rounded bg-accent/10">
                                     <Car className="h-5 w-5 text-accent" />
                                 </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Total Cars</p>
-                                    <p className="text-xl font-semibold">{overviewData?.data?.total_cars || 0}</p>
+                                <div className="flex items-baseline gap-1.5">
+                                    <p className="text-sm text-muted-foreground">Total Cars</p>
+                                    <p className="text-base font-bold">{overviewData?.data?.total_cars || 0}</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
                     <Card className="bg-card border-border">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-chart-3/10">
+                        <CardContent className="py-1 px-2">
+                            <div className="flex items-center gap-1.5">
+                                <div className="p-1 rounded bg-chart-3/10">
                                     <DollarSign className="h-5 w-5 text-chart-3" />
                                 </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Avg Dealer Size</p>
-                                    <p className="text-xl font-semibold">
-                                        {dealers.length > 0
-                                            ? Math.round(dealers.reduce((sum, d) => sum + (d.statistics?.total_cars || 0), 0) / dealers.length)
-                                            : 0}
+                                <div className="flex items-baseline gap-1.5">
+                                    <p className="text-sm text-muted-foreground">Avg Size</p>
+                                    <p className="text-base font-bold">
+                                        {dealers.length > 0 ? Math.round((overviewData?.data?.total_cars || 0) / dealers.length) : 0}
                                     </p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
                     <Card className="bg-card border-border">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-chart-4/10">
+                        <CardContent className="py-1 px-2">
+                            <div className="flex items-center gap-1.5">
+                                <div className="p-1 rounded bg-chart-4/10">
                                     <DollarSign className="h-5 w-5 text-chart-4" />
                                 </div>
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Avg Price</p>
-                                    <p className="text-xl font-semibold">
-                                        £{overviewData?.data?.average_price?.toLocaleString() || 0}
-                                    </p>
+                                <div className="flex items-baseline gap-1.5">
+                                    <p className="text-sm text-muted-foreground">Avg Price</p>
+                                    <p className="text-base font-bold">£{overviewData?.data?.average_price?.toLocaleString() || 0}</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
                 </div>
 
-                {/* Search Bar */}
-                <Card className="bg-card border-border">
-                    <CardContent className="p-4">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search by dealer name or city..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9 bg-muted/50 border-border"
-                            />
-                            {searchQuery && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                                    onClick={() => setSearchQuery("")}
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-
                 {/* Dealers Table */}
                 <Card className="bg-card border-border">
                     <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-base">Dealer List</CardTitle>
-                            <Badge variant="secondary">{filteredDealers.length} dealers</Badge>
+                            <div className="flex items-center gap-3">
+                                <CardTitle className="text-base">Dealer List</CardTitle>
+                                <Badge variant="secondary">{filteredDealers.length} dealers</Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {hasActiveFilters && (
+                                    <Badge variant="secondary" className="text-xs">Filters active</Badge>
+                                )}
+                                <Button variant="outline" size="sm" onClick={handleResetFilters}>
+                                    <X className="h-4 w-4 mr-1" />
+                                    Reset All
+                                </Button>
+                            </div>
                         </div>
                     </CardHeader>
-                    <CardContent>
-                        <div className="rounded-lg border border-border overflow-hidden">
+                    <CardContent className="p-0">
+                        <div>
                             <Table>
-                                <TableHeader>
-                                    <TableRow className="bg-muted/30 hover:bg-muted/30">
-                                        <TableHead className="w-[100px]">Dealer ID</TableHead>
-                                        <SortableHeader field="name">Dealer Name</SortableHeader>
-                                        <SortableHeader field="city">City</SortableHeader>
-                                        <SortableHeader field="total_cars">Total Cars</SortableHeader>
-                                        <SortableHeader field="average_price">Avg Price</SortableHeader>
+                                <TableHeader className="sticky top-0 bg-card z-10">
+                                    <TableRow className="border-border hover:bg-transparent">
+                                        {/* Dealer ID Column with Search Filter */}
+                                        <TableHead className="w-[120px]">
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-xs font-medium">Dealer ID</span>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button variant="ghost" size="sm" className={`h-6 w-6 p-0 ${dealerIdSearch ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                            <Search className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-64 p-3" align="start">
+                                                        <div className="space-y-2">
+                                                            <Input
+                                                                placeholder="Enter Dealer ID"
+                                                                className="h-8"
+                                                                value={dealerIdSearch}
+                                                                onChange={(e) => setDealerIdSearch(e.target.value)}
+                                                            />
+                                                            {dealerIdSearch && (
+                                                                <Button variant="ghost" size="sm" className="h-7 text-xs w-full" onClick={() => setDealerIdSearch('')}>
+                                                                    <X className="h-3 w-3 mr-1" /> Reset
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+                                        </TableHead>
+
+                                        {/* Dealer Name Column with Search Filter */}
+                                        <TableHead>
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-xs font-medium">Dealer Name</span>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button variant="ghost" size="sm" className={`h-6 w-6 p-0 ${dealerNameSearch ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                            <Search className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-64 p-3" align="start">
+                                                        <div className="space-y-2">
+                                                            <Input
+                                                                placeholder="Enter Dealer Name"
+                                                                className="h-8"
+                                                                value={dealerNameSearch}
+                                                                onChange={(e) => setDealerNameSearch(e.target.value)}
+                                                            />
+                                                            {dealerNameSearch && (
+                                                                <Button variant="ghost" size="sm" className="h-7 text-xs w-full" onClick={() => setDealerNameSearch('')}>
+                                                                    <X className="h-3 w-3 mr-1" /> Reset
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </PopoverContent>
+                                                </Popover>
+                                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleSort("name")}>
+                                                    <ArrowUpDown className={`h-3.5 w-3.5 ${sortField === "name" ? "text-primary" : "text-muted-foreground"}`} />
+                                                </Button>
+                                            </div>
+                                        </TableHead>
+
+                                        {/* City Column with Multi-select Filter */}
+                                        <TableHead>
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-xs font-medium">City</span>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button variant="ghost" size="sm" className={`h-6 w-6 p-0 ${selectedCities.length > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                            <Filter className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-56 p-3" align="start">
+                                                        <div className="space-y-2">
+                                                            <div className="max-h-48 overflow-y-auto space-y-1">
+                                                                {cityOptions.map((city) => (
+                                                                    <div
+                                                                        key={city}
+                                                                        className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm"
+                                                                        onClick={() => toggleCity(city)}
+                                                                    >
+                                                                        <div className={`w-4 h-4 border rounded flex items-center justify-center ${selectedCities.includes(city) ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
+                                                                            {selectedCities.includes(city) && <Check className="h-3 w-3 text-primary-foreground" />}
+                                                                        </div>
+                                                                        <span className="text-sm">{city}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            {selectedCities.length > 0 && (
+                                                                <Button variant="ghost" size="sm" className="h-7 text-xs w-full" onClick={() => setSelectedCities([])}>
+                                                                    <X className="h-3 w-3 mr-1" /> Reset
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </PopoverContent>
+                                                </Popover>
+                                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleSort("city")}>
+                                                    <ArrowUpDown className={`h-3.5 w-3.5 ${sortField === "city" ? "text-primary" : "text-muted-foreground"}`} />
+                                                </Button>
+                                            </div>
+                                        </TableHead>
+
+                                        {/* Total Cars Column */}
+                                        <TableHead className="w-[100px]">
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-xs font-medium">Total Cars</span>
+                                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleSort("total_cars")}>
+                                                    <ArrowUpDown className={`h-3.5 w-3.5 ${sortField === "total_cars" ? "text-primary" : "text-muted-foreground"}`} />
+                                                </Button>
+                                            </div>
+                                        </TableHead>
+
+                                        {/* Avg Price Column */}
+                                        <TableHead className="w-[100px]">
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-xs font-medium">Avg Price</span>
+                                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleSort("average_price")}>
+                                                    <ArrowUpDown className={`h-3.5 w-3.5 ${sortField === "average_price" ? "text-primary" : "text-muted-foreground"}`} />
+                                                </Button>
+                                            </div>
+                                        </TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredDealers.length === 0 ? (
+                                    {paginatedDealers.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                                                 No dealers found
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        filteredDealers.map((dealer) => (
-                                            <TableRow
-                                                key={dealer.dealer_id}
-                                                className="cursor-pointer hover:bg-muted/50 transition-colors"
-                                                onClick={() => setSelectedDealerId(dealer.dealer_id)}
-                                            >
-                                                <TableCell className="font-mono text-xs text-muted-foreground">
-                                                    {dealer.dealer_id}
-                                                </TableCell>
-                                                <TableCell className="font-medium">{dealer.name}</TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                                                        {dealer.city}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="secondary">{dealer.statistics?.total_cars || 0}</Badge>
-                                                </TableCell>
-                                                <TableCell className="font-semibold text-primary">
-                                                    £{dealer.statistics?.average_price?.toLocaleString() || 0}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
+                                        paginatedDealers.map((dealer) => {
+                                            const stats = dealersStatsData?.data?.[dealer.dealer_id]
+                                            return (
+                                                <TableRow
+                                                    key={dealer.dealer_id}
+                                                    className="border-border cursor-pointer transition-colors hover:bg-muted/50"
+                                                    onClick={() => setSelectedDealerId(dealer.dealer_id)}
+                                                >
+                                                    <TableCell className="font-mono text-xs text-muted-foreground">
+                                                        {dealer.dealer_id}
+                                                    </TableCell>
+                                                    <TableCell className="font-medium">{dealer.dealer_name}</TableCell>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                                                            {dealer.dealer_city}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge variant="secondary">{stats?.total_cars ?? '-'}</Badge>
+                                                    </TableCell>
+                                                    <TableCell className="font-semibold text-primary">
+                                                        {stats?.avg_price ? `£${stats.avg_price.toLocaleString()}` : '-'}
+                                                    </TableCell>
+                                                </TableRow>
+                                            )
+                                        })
                                     )}
                                 </TableBody>
                             </Table>
                         </div>
                     </CardContent>
+
+                    {/* Pagination Controls */}
+                    <div className="px-4 h-12 border-t border-border flex items-center justify-between flex-shrink-0">
+                        <p className="text-sm text-muted-foreground leading-none">
+                            Showing {filteredDealers.length > 0 ? ((currentPage - 1) * DEALERS_PER_PAGE) + 1 : 0} -{" "}
+                            {Math.min(currentPage * DEALERS_PER_PAGE, filteredDealers.length)} of {filteredDealers.length} dealers
+                        </p>
+                        <div className="flex items-center gap-1.5">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                            >
+                                <ChevronLeft className="h-3.5 w-3.5" />
+                            </Button>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-sm text-muted-foreground leading-none">Page</span>
+                                <Input
+                                    type="number"
+                                    min={1}
+                                    max={totalPages || 1}
+                                    value={pageInputValue}
+                                    onChange={(e) => setPageInputValue(e.target.value)}
+                                    onBlur={(e) => {
+                                        const page = parseInt(e.target.value)
+                                        if (!isNaN(page) && page >= 1 && page <= (totalPages || 1)) {
+                                            setCurrentPage(page)
+                                        } else {
+                                            setPageInputValue(currentPage.toString())
+                                        }
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            const page = parseInt(pageInputValue)
+                                            if (!isNaN(page) && page >= 1 && page <= (totalPages || 1)) {
+                                                setCurrentPage(page)
+                                                e.currentTarget.blur()
+                                            } else {
+                                                setPageInputValue(currentPage.toString())
+                                            }
+                                        }
+                                    }}
+                                    className="h-7 w-14 text-center text-sm"
+                                />
+                                <span className="text-sm text-muted-foreground leading-none">of {totalPages || 1}</span>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages || totalPages === 0}
+                            >
+                                <ChevronRight className="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
+                    </div>
                 </Card>
             </div>
 
@@ -328,11 +565,11 @@ export default function DealersPage() {
                     <DialogHeader className="pb-4 border-b border-border">
                         <DialogTitle className="text-xl flex items-center gap-2">
                             <Building2 className="h-5 w-5 text-primary" />
-                            {selectedDealer?.name}
+                            {selectedDealer?.dealer_name}
                         </DialogTitle>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                             <MapPin className="h-3.5 w-3.5" />
-                            {selectedDealer?.city}
+                            {selectedDealer?.dealer_city}
                         </div>
                     </DialogHeader>
 
@@ -344,58 +581,56 @@ export default function DealersPage() {
                                 </div>
                             ) : (
                                 <>
-                                    {/* Dealer Info */}
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    {/* Dealer Info - 3 cards */}
+                                    <div className="grid grid-cols-3 gap-4">
                                         <div className="p-4 rounded-lg bg-muted/50">
                                             <p className="text-xs text-muted-foreground mb-1">Total Cars</p>
-                                            <p className="text-2xl font-bold">{selectedDealer.statistics?.total_cars || 0}</p>
+                                            <p className="text-2xl font-bold">{dealerStats.totalCars}</p>
                                         </div>
                                         <div className="p-4 rounded-lg bg-muted/50">
                                             <p className="text-xs text-muted-foreground mb-1">Avg Price</p>
                                             <p className="text-2xl font-bold text-primary">
-                                                £{((selectedDealer.statistics?.average_price || 0) / 1000).toFixed(1)}K
+                                                £{dealerStats.avgPrice.toLocaleString()}
                                             </p>
-                                        </div>
-                                        <div className="p-4 rounded-lg bg-muted/50">
-                                            <p className="text-xs text-muted-foreground mb-1">In Stock</p>
-                                            <p className="text-2xl font-bold">{inventoryData?.data?.cars?.length || 0}</p>
                                         </div>
                                         <div className="p-4 rounded-lg bg-muted/50">
                                             <p className="text-xs text-muted-foreground mb-1">Location</p>
                                             <p className="text-sm font-mono">
-                                                {selectedDealer.location?.coordinates?.[1]?.toFixed(4)},{" "}
-                                                {selectedDealer.location?.coordinates?.[0]?.toFixed(4)}
+                                                {selectedDealer.latitude?.toFixed(4)},{" "}
+                                                {selectedDealer.longitude?.toFixed(4)}
                                             </p>
                                         </div>
                                     </div>
 
                                     {/* Charts */}
                                     <div className="grid md:grid-cols-2 gap-6">
-                                        {/* Fuel Type Distribution */}
+                                        {/* Year Distribution Bar Chart */}
                                         <Card className="bg-muted/30 border-border">
                                             <CardHeader className="pb-2">
-                                                <CardTitle className="text-sm">Fuel Type Distribution</CardTitle>
+                                                <CardTitle className="text-sm">Year Distribution</CardTitle>
                                             </CardHeader>
                                             <CardContent>
-                                                <div className="h-[200px]">
-                                                    {fuelChartData.length > 0 ? (
+                                                <div className="h-[200px] min-h-[200px]">
+                                                    {!inventoryLoading && yearDistributionData.length > 0 ? (
                                                         <ResponsiveContainer width="100%" height="100%">
-                                                            <PieChart>
-                                                                <Pie
-                                                                    data={fuelChartData}
-                                                                    cx="50%"
-                                                                    cy="50%"
-                                                                    innerRadius={45}
-                                                                    outerRadius={75}
-                                                                    paddingAngle={3}
-                                                                    dataKey="value"
-                                                                    label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                                                                    labelLine={false}
-                                                                >
-                                                                    {fuelChartData.map((_, index) => (
-                                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                                    ))}
-                                                                </Pie>
+                                                            <BarChart
+                                                                data={yearDistributionData}
+                                                                margin={{ top: 5, right: 5, left: 0, bottom: 0 }}
+                                                            >
+                                                                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.88 0 0)" vertical={false} />
+                                                                <XAxis
+                                                                    dataKey="year"
+                                                                    tick={{ fill: "oklch(0.45 0 0)", fontSize: 10 }}
+                                                                    axisLine={{ stroke: "oklch(0.88 0 0)" }}
+                                                                    tickLine={false}
+                                                                    interval="preserveStartEnd"
+                                                                />
+                                                                <YAxis
+                                                                    tick={{ fill: "oklch(0.45 0 0)", fontSize: 10 }}
+                                                                    axisLine={false}
+                                                                    tickLine={false}
+                                                                    width={25}
+                                                                />
                                                                 <Tooltip
                                                                     contentStyle={{
                                                                         backgroundColor: "oklch(1 0 0)",
@@ -404,10 +639,10 @@ export default function DealersPage() {
                                                                         color: "oklch(0.145 0 0)",
                                                                     }}
                                                                     labelStyle={{ color: "oklch(0.145 0 0)" }}
-                                                                    itemStyle={{ color: "oklch(0.145 0 0)" }}
-                                                                    formatter={(value) => [`${value} vehicles`, "Count"]}
+                                                                    formatter={(value: number) => [`${value} cars`, "Count"]}
                                                                 />
-                                                            </PieChart>
+                                                                <Bar dataKey="count" fill="oklch(0.45 0.18 230)" radius={[4, 4, 0, 0]} />
+                                                            </BarChart>
                                                         </ResponsiveContainer>
                                                     ) : (
                                                         <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -418,30 +653,31 @@ export default function DealersPage() {
                                             </CardContent>
                                         </Card>
 
-                                        {/* Top Manufacturers */}
+                                        {/* Fuel Type Bar Chart */}
                                         <Card className="bg-muted/30 border-border">
                                             <CardHeader className="pb-2">
-                                                <CardTitle className="text-sm">Top Manufacturers</CardTitle>
+                                                <CardTitle className="text-sm">Fuel Type Distribution</CardTitle>
                                             </CardHeader>
                                             <CardContent>
-                                                <div className="h-[200px]">
-                                                    {manufacturerChartData.length > 0 ? (
+                                                <div className="h-[200px] min-h-[200px]">
+                                                    {!inventoryLoading && fuelChartData.length > 0 ? (
                                                         <ResponsiveContainer width="100%" height="100%">
                                                             <BarChart
-                                                                data={manufacturerChartData}
-                                                                margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                                                                data={fuelChartData}
+                                                                margin={{ top: 5, right: 5, left: 0, bottom: 0 }}
                                                             >
                                                                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.88 0 0)" vertical={false} />
                                                                 <XAxis
-                                                                    dataKey="manufacturer"
-                                                                    tick={{ fill: "oklch(0.45 0 0)", fontSize: 11 }}
+                                                                    dataKey="fuelType"
+                                                                    tick={{ fill: "oklch(0.45 0 0)", fontSize: 10 }}
                                                                     axisLine={{ stroke: "oklch(0.88 0 0)" }}
                                                                     tickLine={false}
                                                                 />
                                                                 <YAxis
-                                                                    tick={{ fill: "oklch(0.45 0 0)", fontSize: 11 }}
+                                                                    tick={{ fill: "oklch(0.45 0 0)", fontSize: 10 }}
                                                                     axisLine={false}
                                                                     tickLine={false}
+                                                                    width={30}
                                                                 />
                                                                 <Tooltip
                                                                     contentStyle={{
@@ -451,10 +687,9 @@ export default function DealersPage() {
                                                                         color: "oklch(0.145 0 0)",
                                                                     }}
                                                                     labelStyle={{ color: "oklch(0.145 0 0)" }}
-                                                                    itemStyle={{ color: "oklch(0.145 0 0)" }}
-                                                                    formatter={(value) => [`${value} cars`, "Count"]}
+                                                                    formatter={(value: number) => [`${value} cars`, "Count"]}
                                                                 />
-                                                                <Bar dataKey="count" fill="oklch(0.45 0.18 230)" radius={[4, 4, 0, 0]} />
+                                                                <Bar dataKey="count" fill="oklch(0.5 0.16 215)" radius={[4, 4, 0, 0]} />
                                                             </BarChart>
                                                         </ResponsiveContainer>
                                                     ) : (
@@ -472,6 +707,6 @@ export default function DealersPage() {
                     )}
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     )
 }

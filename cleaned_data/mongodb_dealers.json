@@ -1,1052 +1,352 @@
 [
   {
     "dealer_id": "D00001",
-    "name": "Proctor, Villarreal and Hurley",
-    "city": "Gloucester",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.738007,
-        53.713263
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 285,
-      "average_price": 13708.143859649123
-    },
-    "created_at": "2025-11-22T21:29:06.774449"
+    "dealer_name": "Proctor, Villarreal and Hurley",
+    "dealer_city": "Gloucester",
+    "latitude": 53.713263,
+    "longitude": 0.738007
   },
   {
     "dealer_id": "D00002",
-    "name": "Walker, Baxter and Daniel",
-    "city": "Brighton",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -0.5895,
-        53.314723
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 283,
-      "average_price": 13957.540636042402
-    },
-    "created_at": "2025-11-22T21:29:06.775121"
+    "dealer_name": "Walker, Baxter and Daniel",
+    "dealer_city": "Brighton",
+    "latitude": 53.314723,
+    "longitude": -0.5895
   },
   {
     "dealer_id": "D00003",
-    "name": "Ingram-Mitchell",
-    "city": "Durham",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -2.512489,
-        54.966148
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 311,
-      "average_price": 12405.077170418006
-    },
-    "created_at": "2025-11-22T21:29:06.776169"
+    "dealer_name": "Ingram-Mitchell",
+    "dealer_city": "Durham",
+    "latitude": 54.966148,
+    "longitude": -2.512489
   },
   {
     "dealer_id": "D00004",
-    "name": "Sandoval Group",
-    "city": "Bradford",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -2.996212,
-        53.304466
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 277,
-      "average_price": 12043.884476534296
-    },
-    "created_at": "2025-11-22T21:29:06.776885"
+    "dealer_name": "Sandoval Group",
+    "dealer_city": "Bradford",
+    "latitude": 53.304466,
+    "longitude": -2.996212
   },
   {
     "dealer_id": "D00005",
-    "name": "Wagner, Cobb and Jenkins",
-    "city": "Newcastle upon Tyne",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.750833,
-        53.290375
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 316,
-      "average_price": 14884.344936708861
-    },
-    "created_at": "2025-11-22T21:29:06.777566"
+    "dealer_name": "Wagner, Cobb and Jenkins",
+    "dealer_city": "Newcastle upon Tyne",
+    "latitude": 53.290375,
+    "longitude": 0.750833
   },
   {
     "dealer_id": "D00006",
-    "name": "Warner-Payne",
-    "city": "Cambridge",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -1.344061,
-        52.771701
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 288,
-      "average_price": 14711.375
-    },
-    "created_at": "2025-11-22T21:29:06.778232"
+    "dealer_name": "Warner-Payne",
+    "dealer_city": "Cambridge",
+    "latitude": 52.771701,
+    "longitude": -1.344061
   },
   {
     "dealer_id": "D00007",
-    "name": "Brown Group",
-    "city": "Bradford",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -2.446912,
-        53.35685
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 308,
-      "average_price": 14197.444805194806
-    },
-    "created_at": "2025-11-22T21:29:06.778888"
+    "dealer_name": "Brown Group",
+    "dealer_city": "Bradford",
+    "latitude": 53.35685,
+    "longitude": -2.446912
   },
   {
     "dealer_id": "D00008",
-    "name": "Simmons, Fields and Wolf",
-    "city": "London",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.055345,
-        53.233183
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 288,
-      "average_price": 15182.631944444445
-    },
-    "created_at": "2025-11-22T21:29:06.779541"
+    "dealer_name": "Simmons, Fields and Wolf",
+    "dealer_city": "London",
+    "latitude": 53.233183,
+    "longitude": 0.055345
   },
   {
     "dealer_id": "D00009",
-    "name": "Mclean-Miller",
-    "city": "Bath",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -2.81676,
-        54.735096
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 321,
-      "average_price": 13060.85046728972
-    },
-    "created_at": "2025-11-22T21:29:06.780377"
+    "dealer_name": "Mclean-Miller",
+    "dealer_city": "Bath",
+    "latitude": 54.735096,
+    "longitude": -2.81676
   },
   {
     "dealer_id": "D00010",
-    "name": "Smith LLC",
-    "city": "Chelmsford",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -2.379689,
-        53.511326
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 330,
-      "average_price": 13533.70606060606
-    },
-    "created_at": "2025-11-22T21:29:06.781065"
+    "dealer_name": "Smith LLC",
+    "dealer_city": "Chelmsford",
+    "latitude": 53.511326,
+    "longitude": -2.379689
   },
   {
     "dealer_id": "D00011",
-    "name": "Carr-Shaw",
-    "city": "Woking",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -0.750035,
-        50.712268
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 324,
-      "average_price": 14344.996913580248
-    },
-    "created_at": "2025-11-22T21:29:06.781728"
+    "dealer_name": "Carr-Shaw",
+    "dealer_city": "Woking",
+    "latitude": 50.712268,
+    "longitude": -0.750035
   },
   {
     "dealer_id": "D00012",
-    "name": "Cruz-Castro",
-    "city": "Wolverhampton",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -2.303019,
-        51.880035
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 274,
-      "average_price": 12179.978102189782
-    },
-    "created_at": "2025-11-22T21:29:06.782373"
+    "dealer_name": "Cruz-Castro",
+    "dealer_city": "Wolverhampton",
+    "latitude": 51.880035,
+    "longitude": -2.303019
   },
   {
     "dealer_id": "D00013",
-    "name": "Smith Ltd",
-    "city": "Exeter",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -0.749279,
-        52.362571
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 291,
-      "average_price": 13168.182130584193
-    },
-    "created_at": "2025-11-22T21:29:06.783021"
+    "dealer_name": "Smith Ltd",
+    "dealer_city": "Exeter",
+    "latitude": 52.362571,
+    "longitude": -0.749279
   },
   {
     "dealer_id": "D00014",
-    "name": "Bailey, Grant and Carter",
-    "city": "Sunderland",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -2.092458,
-        50.747838
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 286,
-      "average_price": 13953.188811188811
-    },
-    "created_at": "2025-11-22T21:29:06.783931"
+    "dealer_name": "Bailey, Grant and Carter",
+    "dealer_city": "Sunderland",
+    "latitude": 50.747838,
+    "longitude": -2.092458
   },
   {
     "dealer_id": "D00015",
-    "name": "Vasquez-Murphy",
-    "city": "Watford",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.610865,
-        51.343937
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 329,
-      "average_price": 13585.079027355623
-    },
-    "created_at": "2025-11-22T21:29:06.784801"
+    "dealer_name": "Vasquez-Murphy",
+    "dealer_city": "Watford",
+    "latitude": 51.343937,
+    "longitude": 0.610865
   },
   {
     "dealer_id": "D00016",
-    "name": "Johnson-Turner",
-    "city": "Milton Keynes",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.17948,
-        52.018756
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 312,
-      "average_price": 14039.90064102564
-    },
-    "created_at": "2025-11-22T21:29:06.785527"
+    "dealer_name": "Johnson-Turner",
+    "dealer_city": "Milton Keynes",
+    "latitude": 52.018756,
+    "longitude": 0.17948
   },
   {
     "dealer_id": "D00017",
-    "name": "Aguilar LLC",
-    "city": "Birmingham",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.557778,
-        53.921733
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 319,
-      "average_price": 14250.222570532915
-    },
-    "created_at": "2025-11-22T21:29:06.786224"
+    "dealer_name": "Aguilar LLC",
+    "dealer_city": "Birmingham",
+    "latitude": 53.921733,
+    "longitude": 0.557778
   },
   {
     "dealer_id": "D00018",
-    "name": "Turner-Walton",
-    "city": "Norwich",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -0.354412,
-        51.047234
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 294,
-      "average_price": 13671.959183673469
-    },
-    "created_at": "2025-11-22T21:29:06.786892"
+    "dealer_name": "Turner-Walton",
+    "dealer_city": "Norwich",
+    "latitude": 51.047234,
+    "longitude": -0.354412
   },
   {
     "dealer_id": "D00019",
-    "name": "Davis, Guerrero and Vasquez",
-    "city": "Sunderland",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -1.224031,
-        50.054503
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 283,
-      "average_price": 13473.498233215547
-    },
-    "created_at": "2025-11-22T21:29:06.787546"
+    "dealer_name": "Davis, Guerrero and Vasquez",
+    "dealer_city": "Sunderland",
+    "latitude": 50.054503,
+    "longitude": -1.224031
   },
   {
     "dealer_id": "D00020",
-    "name": "Wilson and Sons",
-    "city": "York",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -0.212716,
-        52.27813
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 310,
-      "average_price": 15597.174193548388
-    },
-    "created_at": "2025-11-22T21:29:06.788205"
+    "dealer_name": "Wilson and Sons",
+    "dealer_city": "York",
+    "latitude": 52.27813,
+    "longitude": -0.212716
   },
   {
     "dealer_id": "D00021",
-    "name": "Day LLC",
-    "city": "Stoke-on-Trent",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -2.752647,
-        54.069902
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 330,
-      "average_price": 14518.084848484848
-    },
-    "created_at": "2025-11-22T21:29:06.788868"
+    "dealer_name": "Day LLC",
+    "dealer_city": "Stoke-on-Trent",
+    "latitude": 54.069902,
+    "longitude": -2.752647
   },
   {
     "dealer_id": "D00022",
-    "name": "Anderson-Rivas",
-    "city": "Dundee",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.486504,
-        52.684469
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 297,
-      "average_price": 13435.063973063972
-    },
-    "created_at": "2025-11-22T21:29:06.789532"
+    "dealer_name": "Anderson-Rivas",
+    "dealer_city": "Dundee",
+    "latitude": 52.684469,
+    "longitude": 0.486504
   },
   {
     "dealer_id": "D00023",
-    "name": "Little-Mcconnell",
-    "city": "Newcastle upon Tyne",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.88774,
-        51.224559
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 288,
-      "average_price": 13061.600694444445
-    },
-    "created_at": "2025-11-22T21:29:06.790457"
+    "dealer_name": "Little-Mcconnell",
+    "dealer_city": "Newcastle upon Tyne",
+    "latitude": 51.224559,
+    "longitude": 0.88774
   },
   {
     "dealer_id": "D00024",
-    "name": "Gonzales-Morales",
-    "city": "Liverpool",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -1.796849,
-        54.099828
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 296,
-      "average_price": 14230.003378378378
-    },
-    "created_at": "2025-11-22T21:29:06.791195"
+    "dealer_name": "Gonzales-Morales",
+    "dealer_city": "Liverpool",
+    "latitude": 54.099828,
+    "longitude": -1.796849
   },
   {
     "dealer_id": "D00025",
-    "name": "Perez Group",
-    "city": "Chester",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -1.084662,
-        50.987354
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 259,
-      "average_price": 13389.34749034749
-    },
-    "created_at": "2025-11-22T21:29:06.791922"
+    "dealer_name": "Perez Group",
+    "dealer_city": "Chester",
+    "latitude": 50.987354,
+    "longitude": -1.084662
   },
   {
     "dealer_id": "D00026",
-    "name": "Villa and Sons",
-    "city": "Watford",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.513693,
-        51.405253
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 255,
-      "average_price": 13324.654901960785
-    },
-    "created_at": "2025-11-22T21:29:06.792743"
+    "dealer_name": "Villa and Sons",
+    "dealer_city": "Watford",
+    "latitude": 51.405253,
+    "longitude": 0.513693
   },
   {
     "dealer_id": "D00027",
-    "name": "Allen-Jones",
-    "city": "Edinburgh",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.126593,
-        51.561646
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 285,
-      "average_price": 12368.428070175438
-    },
-    "created_at": "2025-11-22T21:29:06.793415"
+    "dealer_name": "Allen-Jones",
+    "dealer_city": "Edinburgh",
+    "latitude": 51.561646,
+    "longitude": 0.126593
   },
   {
     "dealer_id": "D00028",
-    "name": "Schroeder and Sons",
-    "city": "Aberdeen",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.233383,
-        54.748374
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 293,
-      "average_price": 13875.890784982936
-    },
-    "created_at": "2025-11-22T21:29:06.794075"
+    "dealer_name": "Schroeder and Sons",
+    "dealer_city": "Aberdeen",
+    "latitude": 54.748374,
+    "longitude": 0.233383
   },
   {
     "dealer_id": "D00029",
-    "name": "Wilcox LLC",
-    "city": "Cambridge",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -1.160736,
-        51.862216
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 295,
-      "average_price": 14776.013559322035
-    },
-    "created_at": "2025-11-22T21:29:06.794729"
+    "dealer_name": "Wilcox LLC",
+    "dealer_city": "Cambridge",
+    "latitude": 51.862216,
+    "longitude": -1.160736
   },
   {
     "dealer_id": "D00030",
-    "name": "Brewer-Sosa",
-    "city": "Swansea",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -1.391684,
-        51.532466
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 314,
-      "average_price": 14011.468152866242
-    },
-    "created_at": "2025-11-22T21:29:06.795388"
+    "dealer_name": "Brewer-Sosa",
+    "dealer_city": "Swansea",
+    "latitude": 51.532466,
+    "longitude": -1.391684
   },
   {
     "dealer_id": "D00031",
-    "name": "Collins and Sons",
-    "city": "Lancaster",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -0.467322,
-        51.230497
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 300,
-      "average_price": 14630.696666666667
-    },
-    "created_at": "2025-11-22T21:29:06.796042"
+    "dealer_name": "Collins and Sons",
+    "dealer_city": "Lancaster",
+    "latitude": 51.230497,
+    "longitude": -0.467322
   },
   {
     "dealer_id": "D00032",
-    "name": "Carlson, Whitaker and Barrett",
-    "city": "Luton",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -1.185679,
-        52.744646
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 318,
-      "average_price": 13628.528301886792
-    },
-    "created_at": "2025-11-22T21:29:06.796708"
+    "dealer_name": "Carlson, Whitaker and Barrett",
+    "dealer_city": "Luton",
+    "latitude": 52.744646,
+    "longitude": -1.185679
   },
   {
     "dealer_id": "D00033",
-    "name": "Macdonald Inc",
-    "city": "Hull",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -2.33015,
-        52.499102
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 290,
-      "average_price": 14378.744827586206
-    },
-    "created_at": "2025-11-22T21:29:06.797365"
+    "dealer_name": "Macdonald Inc",
+    "dealer_city": "Hull",
+    "latitude": 52.499102,
+    "longitude": -2.33015
   },
   {
     "dealer_id": "D00034",
-    "name": "Peterson-Ewing",
-    "city": "Middlesbrough",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -1.856727,
-        52.694375
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 264,
-      "average_price": 14858.655303030304
-    },
-    "created_at": "2025-11-22T21:29:06.798017"
+    "dealer_name": "Peterson-Ewing",
+    "dealer_city": "Middlesbrough",
+    "latitude": 52.694375,
+    "longitude": -1.856727
   },
   {
     "dealer_id": "D00035",
-    "name": "Hawkins, Stark and Campos",
-    "city": "Durham",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -1.08633,
-        50.910592
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 288,
-      "average_price": 13044.822916666666
-    },
-    "created_at": "2025-11-22T21:29:06.798665"
+    "dealer_name": "Hawkins, Stark and Campos",
+    "dealer_city": "Durham",
+    "latitude": 50.910592,
+    "longitude": -1.08633
   },
   {
     "dealer_id": "D00036",
-    "name": "Hancock PLC",
-    "city": "Watford",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.608684,
-        51.122801
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 313,
-      "average_price": 13421.277955271566
-    },
-    "created_at": "2025-11-22T21:29:06.799320"
+    "dealer_name": "Hancock PLC",
+    "dealer_city": "Watford",
+    "latitude": 51.122801,
+    "longitude": 0.608684
   },
   {
     "dealer_id": "D00037",
-    "name": "Johnson and Sons",
-    "city": "Derby",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -1.056824,
-        50.88672
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 315,
-      "average_price": 14005.71746031746
-    },
-    "created_at": "2025-11-22T21:29:06.800145"
+    "dealer_name": "Johnson and Sons",
+    "dealer_city": "Derby",
+    "latitude": 50.88672,
+    "longitude": -1.056824
   },
   {
     "dealer_id": "D00038",
-    "name": "Brown Inc",
-    "city": "Plymouth",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -0.147326,
-        52.615955
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 306,
-      "average_price": 14438.66339869281
-    },
-    "created_at": "2025-11-22T21:29:06.801079"
+    "dealer_name": "Brown Inc",
+    "dealer_city": "Plymouth",
+    "latitude": 52.615955,
+    "longitude": -0.147326
   },
   {
     "dealer_id": "D00039",
-    "name": "Black, Black and Bishop",
-    "city": "Durham",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -1.216481,
-        51.299364
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 307,
-      "average_price": 14085.902280130293
-    },
-    "created_at": "2025-11-22T21:29:06.801806"
+    "dealer_name": "Black, Black and Bishop",
+    "dealer_city": "Durham",
+    "latitude": 51.299364,
+    "longitude": -1.216481
   },
   {
     "dealer_id": "D00040",
-    "name": "Lucas PLC",
-    "city": "Cambridge",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.135359,
-        51.88956
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 312,
-      "average_price": 12132.73717948718
-    },
-    "created_at": "2025-11-22T21:29:06.802491"
+    "dealer_name": "Lucas PLC",
+    "dealer_city": "Cambridge",
+    "latitude": 51.88956,
+    "longitude": 0.135359
   },
   {
     "dealer_id": "D00041",
-    "name": "Adams-Kelly",
-    "city": "Belfast",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -2.034983,
-        54.545088
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 294,
-      "average_price": 13743.945578231293
-    },
-    "created_at": "2025-11-22T21:29:06.803135"
+    "dealer_name": "Adams-Kelly",
+    "dealer_city": "Belfast",
+    "latitude": 54.545088,
+    "longitude": -2.034983
   },
   {
     "dealer_id": "D00042",
-    "name": "Richard-George",
-    "city": "Nottingham",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.508781,
-        52.512743
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 298,
-      "average_price": 13960.453020134228
-    },
-    "created_at": "2025-11-22T21:29:06.803773"
+    "dealer_name": "Richard-George",
+    "dealer_city": "Nottingham",
+    "latitude": 52.512743,
+    "longitude": 0.508781
   },
   {
     "dealer_id": "D00043",
-    "name": "Kramer, Alvarez and Davis",
-    "city": "Slough",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -1.749703,
-        52.850331
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 323,
-      "average_price": 12751.665634674922
-    },
-    "created_at": "2025-11-22T21:29:06.804405"
+    "dealer_name": "Kramer, Alvarez and Davis",
+    "dealer_city": "Slough",
+    "latitude": 52.850331,
+    "longitude": -1.749703
   },
   {
     "dealer_id": "D00044",
-    "name": "Miller-Hoover",
-    "city": "Dundee",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -2.243713,
-        54.896189
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 321,
-      "average_price": 12232.841121495327
-    },
-    "created_at": "2025-11-22T21:29:06.805035"
+    "dealer_name": "Miller-Hoover",
+    "dealer_city": "Dundee",
+    "latitude": 54.896189,
+    "longitude": -2.243713
   },
   {
     "dealer_id": "D00045",
-    "name": "Guzman-Logan",
-    "city": "York",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -0.921661,
-        50.868285
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 271,
-      "average_price": 11827.749077490775
-    },
-    "created_at": "2025-11-22T21:29:06.805665"
+    "dealer_name": "Guzman-Logan",
+    "dealer_city": "York",
+    "latitude": 50.868285,
+    "longitude": -0.921661
   },
   {
     "dealer_id": "D00046",
-    "name": "Johnson-Wilkinson",
-    "city": "Glasgow",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -0.142466,
-        53.746682
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 307,
-      "average_price": 14227.944625407166
-    },
-    "created_at": "2025-11-22T21:29:06.806296"
+    "dealer_name": "Johnson-Wilkinson",
+    "dealer_city": "Glasgow",
+    "latitude": 53.746682,
+    "longitude": -0.142466
   },
   {
     "dealer_id": "D00047",
-    "name": "Perez, Gordon and Thomas",
-    "city": "Luton",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.867981,
-        53.079879
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 331,
-      "average_price": 13780.70996978852
-    },
-    "created_at": "2025-11-22T21:29:06.806933"
+    "dealer_name": "Perez, Gordon and Thomas",
+    "dealer_city": "Luton",
+    "latitude": 53.079879,
+    "longitude": 0.867981
   },
   {
     "dealer_id": "D00048",
-    "name": "Nelson-Miller",
-    "city": "Belfast",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -2.528466,
-        53.159446
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 304,
-      "average_price": 13570.89802631579
-    },
-    "created_at": "2025-11-22T21:29:06.807573"
+    "dealer_name": "Nelson-Miller",
+    "dealer_city": "Belfast",
+    "latitude": 53.159446,
+    "longitude": -2.528466
   },
   {
     "dealer_id": "D00049",
-    "name": "Brooks, Thomas and Davis",
-    "city": "Woking",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        -1.230474,
-        54.537631
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 293,
-      "average_price": 15764.866894197952
-    },
-    "created_at": "2025-11-22T21:29:06.808205"
+    "dealer_name": "Brooks, Thomas and Davis",
+    "dealer_city": "Woking",
+    "latitude": 54.537631,
+    "longitude": -1.230474
   },
   {
     "dealer_id": "D00050",
-    "name": "Smith-Houston",
-    "city": "Leicester",
-    "location": {
-      "type": "Point",
-      "coordinates": [
-        0.912489,
-        51.863203
-      ]
-    },
-    "contact": {
-      "phone": null,
-      "email": null
-    },
-    "statistics": {
-      "total_cars": 304,
-      "average_price": 13912.470394736842
-    },
-    "created_at": "2025-11-22T21:29:06.808807"
+    "dealer_name": "Smith-Houston",
+    "dealer_city": "Leicester",
+    "latitude": 51.863203,
+    "longitude": 0.912489
   }
 ]

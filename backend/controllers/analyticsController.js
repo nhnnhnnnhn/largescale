@@ -95,7 +95,7 @@ exports.getByFuelType = async (req, res, next) => {
         const distribution = await Car.aggregate([
             {
                 $group: {
-                    _id: '$specifications.fuel_type',
+                    _id: '$fuel_type',
                     count: { $sum: 1 },
                     avgPrice: { $avg: '$price' }
                 }
@@ -129,35 +129,41 @@ exports.getByFuelType = async (req, res, next) => {
     }
 };
 
-// @desc    Get service trends over time
+// @desc    Get service trends over time (half-yearly 2021-2024)
 // @route   GET /api/analytics/service-trends
 // @access  Public
 exports.getServiceTrends = async (req, res, next) => {
     try {
-        const months = parseInt(req.query.months) || 24;
-
-        // Calculate cutoff date (months ago from now)
-        const cutoffDate = new Date();
-        cutoffDate.setMonth(cutoffDate.getMonth() - months);
-        const cutoffString = cutoffDate.toISOString().split('T')[0];
-
+        // Get service trends grouped by half-year periods from 2021 to 2024
         const trends = await Service.aggregate([
             {
                 $match: {
-                    date: { $gte: cutoffString }
+                    date_of_service: { $gte: '2021-01-01', $lte: '2024-12-31' }
                 }
             },
             {
                 $addFields: {
-                    yearMonth: { $substr: ['$date', 0, 7] } // Extract YYYY-MM
+                    year: { $substr: ['$date_of_service', 0, 4] },
+                    month: { $toInt: { $substr: ['$date_of_service', 5, 2] } }
+                }
+            },
+            {
+                $addFields: {
+                    halfYear: {
+                        $concat: [
+                            '$year',
+                            '-',
+                            { $cond: [{ $lte: ['$month', 6] }, 'H1', 'H2'] }
+                        ]
+                    }
                 }
             },
             {
                 $group: {
-                    _id: '$yearMonth',
+                    _id: '$halfYear',
                     count: { $sum: 1 },
-                    totalCost: { $sum: '$cost' },
-                    avgCost: { $avg: '$cost' }
+                    totalCost: { $sum: '$cost_of_service' },
+                    avgCost: { $avg: '$cost_of_service' }
                 }
             },
             {
@@ -177,7 +183,7 @@ exports.getServiceTrends = async (req, res, next) => {
         res.json({
             success: true,
             data: trends,
-            period: `Last ${months} months`
+            period: '2021-2024 (half-yearly)'
         });
     } catch (error) {
         next(error);
@@ -254,10 +260,10 @@ exports.getMileagePrice = async (req, res, next) => {
                     car_id: 1,
                     manufacturer: 1,
                     model: 1,
-                    mileage: '$specifications.mileage',
+                    mileage: '$mileage',
                     price: 1,
-                    year: '$specifications.year_of_manufacturing',
-                    fuel_type: '$specifications.fuel_type'
+                    year: '$year_of_manufacturing',
+                    fuel_type: '$fuel_type'
                 }
             }
         ]);
@@ -277,30 +283,18 @@ exports.getMileagePrice = async (req, res, next) => {
 // @access  Public
 exports.getPriceDistribution = async (req, res, next) => {
     try {
-        const bins = parseInt(req.query.bins) || 10;
+        const binSize = 10000; // Fixed 10k GBP bins
+        const maxBins = 20; // Up to 200k
 
-        // Get min and max prices
-        const priceRange = await Car.aggregate([
-            {
-                $group: {
-                    _id: null,
-                    minPrice: { $min: '$price' },
-                    maxPrice: { $max: '$price' }
-                }
-            }
-        ]);
+        // Create fixed boundaries: 0, 10000, 20000, ..., 200000
+        const boundaries = Array.from({ length: maxBins + 1 }, (_, i) => i * binSize);
 
-        const { minPrice, maxPrice } = priceRange[0];
-        const binSize = (maxPrice - minPrice) / bins;
-
-        // Create histogram
+        // Create histogram with fixed 10k bins
         const histogram = await Car.aggregate([
             {
                 $bucket: {
                     groupBy: '$price',
-                    boundaries: Array.from({ length: bins + 1 }, (_, i) =>
-                        minPrice + (i * binSize)
-                    ),
+                    boundaries: boundaries,
                     default: 'Other',
                     output: {
                         count: { $sum: 1 },
@@ -310,10 +304,16 @@ exports.getPriceDistribution = async (req, res, next) => {
             }
         ]);
 
+        // Format data with readable labels
+        const formattedData = histogram.map(item => ({
+            ...item,
+            range: item._id === 'Other' ? '200k+' : `${item._id / 1000}-${(item._id + binSize) / 1000}k`
+        }));
+
         res.json({
             success: true,
-            data: histogram,
-            range: { minPrice, maxPrice, binSize: Math.round(binSize) }
+            data: formattedData,
+            binSize: binSize
         });
     } catch (error) {
         next(error);
@@ -357,8 +357,8 @@ exports.getTopDealers = async (req, res, next) => {
                 $project: {
                     _id: 0,
                     dealer_id: '$_id',
-                    dealer_name: '$dealer.name',
-                    dealer_city: '$dealer.city',
+                    dealer_name: '$dealer.dealer_name',
+                    dealer_city: '$dealer.dealer_city',
                     total_cars: '$totalCars',
                     total_sales: { $round: ['$totalSales', 2] },
                     avg_price: { $round: ['$avgPrice', 2] }
@@ -375,31 +375,38 @@ exports.getTopDealers = async (req, res, next) => {
     }
 };
 
-// @desc    Get accident trends over time
+// @desc    Get accident trends over time (half-yearly 2021-2024)
 // @route   GET /api/analytics/accident-trends
 // @access  Public
 exports.getAccidentTrends = async (req, res, next) => {
     try {
-        const months = parseInt(req.query.months) || 24;
-
-        const cutoffDate = new Date();
-        cutoffDate.setMonth(cutoffDate.getMonth() - months);
-        const cutoffString = cutoffDate.toISOString().split('T')[0];
-
+        // Get accident trends grouped by half-year periods from 2021 to 2024
         const trends = await Accident.aggregate([
             {
                 $match: {
-                    date: { $gte: cutoffString }
+                    date_of_accident: { $gte: '2021-01-01', $lte: '2024-12-31' }
                 }
             },
             {
                 $addFields: {
-                    yearMonth: { $substr: ['$date', 0, 7] }
+                    year: { $substr: ['$date_of_accident', 0, 4] },
+                    month: { $toInt: { $substr: ['$date_of_accident', 5, 2] } }
+                }
+            },
+            {
+                $addFields: {
+                    halfYear: {
+                        $concat: [
+                            '$year',
+                            '-',
+                            { $cond: [{ $lte: ['$month', 6] }, 'H1', 'H2'] }
+                        ]
+                    }
                 }
             },
             {
                 $group: {
-                    _id: '$yearMonth',
+                    _id: '$halfYear',
                     count: { $sum: 1 },
                     totalCost: { $sum: '$cost_of_repair' },
                     avgCost: { $avg: '$cost_of_repair' }
@@ -422,7 +429,7 @@ exports.getAccidentTrends = async (req, res, next) => {
         res.json({
             success: true,
             data: trends,
-            period: `Last ${months} months`
+            period: '2021-2024 (half-yearly)'
         });
     } catch (error) {
         next(error);

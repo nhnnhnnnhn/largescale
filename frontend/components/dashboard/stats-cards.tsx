@@ -84,20 +84,20 @@ export function StatsCards() {
     <div className="grid grid-cols-4 gap-4">
       {stats.map((stat) => (
         <Card key={stat.title} className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
+          <CardContent className="py-1 px-2">
+            <div className="flex items-center gap-1.5">
               <div
-                className="p-3 rounded-xl"
+                className="p-1 rounded"
                 style={{ backgroundColor: stat.bgColor }}
               >
                 <stat.icon
-                  className="h-6 w-6"
+                  className="h-5 w-5"
                   style={{ color: stat.color }}
                 />
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+              <div className="flex items-baseline gap-1.5">
+                <p className="text-sm text-gray-500">{stat.title}</p>
+                <p className="text-base font-bold text-gray-900">{stat.value}</p>
               </div>
             </div>
           </CardContent>

@@ -1,4 +1,4 @@
-AccidentID,CarID,Date_of_Accident,Description,Cost_of_Repair,Severity
+accident_id,car_id,date_of_accident,description,cost_of_repair,severity
 A50378,C33554,2025-02-25,Front-end collision,715.0,Major
 A50379,C33554,2023-01-01,Windshield damage,4914.0,Severe
 A14186,C09428,2022-12-05,Minor fender bender,4469.0,Moderate

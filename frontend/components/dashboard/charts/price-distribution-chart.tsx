@@ -21,9 +21,9 @@ const COLORS = [
 export function PriceDistributionChart() {
     const { data, isLoading, error } = useGetPriceDistributionQuery({ bins: 10 })
 
-    // Format data for display
+    // Use the range field directly from API (now formatted as "0-10k", "10-20k", etc.)
     const chartData = data?.data?.map((item: any) => ({
-        range: `£${(item._id / 1000).toFixed(0)}k`,
+        range: item.range,
         count: item.count,
         price: item._id,
     })) || []

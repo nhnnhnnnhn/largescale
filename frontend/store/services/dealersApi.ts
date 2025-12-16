@@ -43,6 +43,14 @@ export const dealersApi = apiSlice.injectEndpoints({
             }),
             providesTags: [{ type: "Dealers", id: "NEARBY" }],
         }),
+
+        getDealersStats: builder.query<
+            ApiResponse<Record<string, { total_cars: number; avg_price: number }>>,
+            void
+        >({
+            query: () => "/dealers/stats",
+            providesTags: [{ type: "Dealers", id: "STATS" }],
+        }),
     }),
 })
 
@@ -51,4 +59,5 @@ export const {
     useGetDealerByIdQuery,
     useGetDealerInventoryQuery,
     useGetNearbyDealersQuery,
+    useGetDealersStatsQuery,
 } = dealersApi

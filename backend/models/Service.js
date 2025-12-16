@@ -13,27 +13,23 @@ const serviceSchema = new mongoose.Schema({
         required: true,
         index: true
     },
-    date: {
+    date_of_service: {
         type: String, // YYYY-MM-DD format
         required: true,
         index: true
     },
-    type: {
+    service_type: {
         type: String,
         required: true,
         index: true
     },
-    cost: {
+    cost_of_service: {
         type: Number,
         required: true
-    },
-    created_at: {
-        type: Date,
-        default: Date.now
     }
 });
 
 // Compound index for car service history queries
-serviceSchema.index({ car_id: 1, date: -1 });
+serviceSchema.index({ car_id: 1, date_of_service: -1 });
 
 module.exports = mongoose.model('Service', serviceSchema, 'services');

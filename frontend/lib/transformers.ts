@@ -12,46 +12,30 @@ export function transformCar(
     backendCar: BackendCar,
     dealer?: BackendDealer
 ): CarRecord {
-    // Create placeholder service records based on summary count
-    // This allows the table to show counts even without full history
-    const serviceHistory: ServiceRecord[] = Array.from(
-        { length: backendCar.service_summary.total_services },
-        (_, i) => ({
-            ServiceID: `placeholder-${i}`,
-            DateOfService: backendCar.service_summary.last_service_date || "",
-            ServiceType: backendCar.service_summary.last_service_type || "Unknown",
-            CostOfService: 0,
-        })
-    )
-
-    // Create placeholder accident records based on summary count
-    const accidents: AccidentRecord[] = Array.from(
-        { length: backendCar.accident_summary.total_accidents },
-        (_, i) => ({
-            AccidentID: `placeholder-${i}`,
-            DateOfAccident: backendCar.accident_summary.last_accident_date || "",
-            Description: "",
-            CostOfRepair: 0,
-            Severity: (backendCar.accident_summary.highest_severity as any) || "Minor",
-        })
-    )
+    // Parse features string to array
+    const featuresArray = backendCar.features
+        ? backendCar.features.split(',').map(f => f.trim())
+        : []
 
     return {
         CarID: backendCar.car_id,
         Manufacturer: backendCar.manufacturer,
         Model: backendCar.model,
-        EngineSize: backendCar.specifications.engine_size || 0,
-        Features: backendCar.features,
-        FuelType: backendCar.specifications.fuel_type,
-        YearOfManufacturing: backendCar.specifications.year_of_manufacturing,
-        Mileage: backendCar.specifications.mileage,
+        EngineSize: backendCar.engine_size || 0,
+        Features: featuresArray,
+        FuelType: backendCar.fuel_type,
+        YearOfManufacturing: backendCar.year_of_manufacturing,
+        Mileage: backendCar.mileage,
         Price: backendCar.price,
-        DealerName: dealer?.name || "",
-        DealerCity: dealer?.city || "",
-        Latitude: dealer?.location?.coordinates[1] || 0,
-        Longitude: dealer?.location?.coordinates[0] || 0,
-        ServiceHistory: serviceHistory,
-        Accidents: accidents,
+        DealerName: dealer?.dealer_name || "",
+        DealerCity: dealer?.dealer_city || "",
+        Latitude: dealer?.latitude || 0,
+        Longitude: dealer?.longitude || 0,
+        ServiceHistory: [],
+        Accidents: [],
+        // Use counts from API if available
+        AccidentCount: backendCar.accident_count,
+        ServiceCount: backendCar.service_count,
     }
 }
 
@@ -61,9 +45,9 @@ export function transformService(
 ): ServiceRecord {
     return {
         ServiceID: backendService.service_id,
-        DateOfService: backendService.date,
-        ServiceType: backendService.type,
-        CostOfService: backendService.cost,
+        DateOfService: backendService.date_of_service,
+        ServiceType: backendService.service_type,
+        CostOfService: backendService.cost_of_service,
     }
 }
 
@@ -73,7 +57,7 @@ export function transformAccident(
 ): AccidentRecord {
     return {
         AccidentID: backendAccident.accident_id,
-        DateOfAccident: backendAccident.date,
+        DateOfAccident: backendAccident.date_of_accident,
         Description: backendAccident.description,
         CostOfRepair: backendAccident.cost_of_repair,
         Severity: backendAccident.severity,

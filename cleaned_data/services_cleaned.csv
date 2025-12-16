@@ -1,4 +1,4 @@
-ServiceID,CarID,Date_of_Service,ServiceType,Cost_of_Service
+service_id,car_id,date_of_service,service_type,cost_of_service
 S100854,C33554,2024-05-23,Major Service,418.0
 S128315,C42725,2025-02-21,Air Filter Replacement,232.0
 S32674,C10823,2022-12-09,Suspension Check,114.0

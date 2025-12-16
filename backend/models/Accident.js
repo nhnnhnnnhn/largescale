@@ -13,7 +13,7 @@ const accidentSchema = new mongoose.Schema({
         required: true,
         index: true
     },
-    date: {
+    date_of_accident: {
         type: String, // YYYY-MM-DD format
         required: true,
         index: true
@@ -27,15 +27,11 @@ const accidentSchema = new mongoose.Schema({
     cost_of_repair: {
         type: Number,
         required: true
-    },
-    created_at: {
-        type: Date,
-        default: Date.now
     }
 });
 
 // Compound index for car accident history queries
-accidentSchema.index({ car_id: 1, date: -1 });
+accidentSchema.index({ car_id: 1, date_of_accident: -1 });
 // Index for severity analysis
 accidentSchema.index({ severity: 1, cost_of_repair: -1 });
 

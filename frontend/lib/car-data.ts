@@ -14,6 +14,9 @@ export interface CarRecord {
   Longitude: number
   ServiceHistory: ServiceRecord[]
   Accidents: AccidentRecord[]
+  // Counts from API - used when full history isn't loaded
+  AccidentCount?: number
+  ServiceCount?: number
 }
 
 export interface ServiceRecord {
@@ -28,7 +31,7 @@ export interface AccidentRecord {
   DateOfAccident: string
   Description: string
   CostOfRepair: number
-  Severity: "Minor" | "Moderate" | "Major"
+  Severity: "Minor" | "Moderate" | "Major" | "Severe"
 }
 
 // Sample data matching the UK Car Sales Dataset structure

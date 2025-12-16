@@ -80,8 +80,8 @@ exports.getDealerInventory = async (req, res, next) => {
             data: {
                 dealer: {
                     dealer_id: dealer.dealer_id,
-                    name: dealer.name,
-                    city: dealer.city
+                    name: dealer.dealer_name,
+                    city: dealer.dealer_city
                 },
                 cars,
                 metadata: {
@@ -139,6 +139,41 @@ exports.getNearbyDealers = async (req, res, next) => {
                 maxDistance: distance,
                 found: dealers.length
             }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get stats for all dealers (total cars and avg price per dealer)
+// @route   GET /api/dealers/stats
+// @access  Public
+exports.getDealersStats = async (req, res, next) => {
+    try {
+        // Aggregate car stats by dealer
+        const stats = await Car.aggregate([
+            {
+                $group: {
+                    _id: '$dealer_id',
+                    total_cars: { $sum: 1 },
+                    avg_price: { $avg: '$price' },
+                    total_price: { $sum: '$price' }
+                }
+            }
+        ]);
+
+        // Convert to object keyed by dealer_id for easy lookup
+        const dealerStats = {};
+        stats.forEach(stat => {
+            dealerStats[stat._id] = {
+                total_cars: stat.total_cars,
+                avg_price: Math.round(stat.avg_price || 0)
+            };
+        });
+
+        res.json({
+            success: true,
+            data: dealerStats
         });
     } catch (error) {
         next(error);

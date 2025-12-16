@@ -9,11 +9,18 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
-// Middleware
-app.use(cors({
-    origin: process.env.CLIENT_URL,
-    credentials: true
-}));
+// CORS Middleware - Allow all origins
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+
+    // Handle preflight
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev')); // Logging
@@ -69,9 +76,11 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT;
+const HOST = '0.0.0.0';
 
-app.listen(PORT, () => {
-    console.log(`\nServer running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+app.listen(PORT, HOST, () => {
+    console.log(`\nServer running in ${process.env.NODE_ENV} mode on ${HOST}:${PORT}`);
     console.log(`API: http://localhost:${PORT}`);
+    console.log(`External API: http://159.195.33.254:${PORT}`);
     console.log(`Frontend: ${process.env.CLIENT_URL}\n`);
 });

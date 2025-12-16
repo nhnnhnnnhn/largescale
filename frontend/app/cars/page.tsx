@@ -17,6 +17,7 @@ import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
     Search,
     Car,
@@ -32,38 +33,60 @@ import {
     X,
     Filter,
     ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
     Wrench,
     Info,
+    Check,
 } from "lucide-react"
 import type { CarRecord } from "@/lib/car-data"
 
-const ITEMS_PER_PAGE = 15
+const FETCH_ALL_LIMIT = 15000 // Fetch all data for client-side filtering
 
 type SortField = "CarID" | "Manufacturer" | "Year" | "Price" | "Mileage" | "Accidents" | "Services"
 type SortDirection = "asc" | "desc"
+
+// Format date string to a cleaner format: "DD/MM/YYYY HH:mm"
+const formatDate = (dateString: string): string => {
+    try {
+        const date = new Date(dateString)
+        if (isNaN(date.getTime())) return dateString
+
+        const day = date.getDate().toString().padStart(2, '0')
+        const month = (date.getMonth() + 1).toString().padStart(2, '0')
+        const year = date.getFullYear()
+        const hours = date.getHours().toString().padStart(2, '0')
+        const minutes = date.getMinutes().toString().padStart(2, '0')
+
+        return `${day}/${month}/${year} ${hours}:${minutes}`
+    } catch {
+        return dateString
+    }
+}
 
 export default function CarsPage() {
     // Mutations and queries
     const [searchCars, { data: searchResponse, isLoading: carsLoading, error: carsError }] = useSearchCarsMutation()
     const { data: dealersData, isLoading: dealersLoading } = useGetDealersQuery()
 
-    // Filter state
-    const [selectedManufacturer, setSelectedManufacturer] = useState<string>("all")
-    const [selectedFuelType, setSelectedFuelType] = useState<string>("all")
-    const [selectedYear, setSelectedYear] = useState<string>("all")
+    // Filter state - inline column filters
+    const [carIdSearch, setCarIdSearch] = useState<string>("")
+    const [selectedManufacturers, setSelectedManufacturers] = useState<string[]>([])
+    const [selectedFuelTypes, setSelectedFuelTypes] = useState<string[]>([]) // Multi-select
+    const [yearStart, setYearStart] = useState<string>("") // Number input
+    const [yearEnd, setYearEnd] = useState<string>("") // Number input
     const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000])
-    const [mileageRange, setMileageRange] = useState<[number, number]>([0, 200000])
+    const [selectedDealerIds, setSelectedDealerIds] = useState<string[]>([]) // Multi-select
 
     // Search & Pagination State
-    const [searchQuery, setSearchQuery] = useState("")
     const [currentPage, setCurrentPage] = useState(1)
     const [pageInputValue, setPageInputValue] = useState("1")
 
-    // Advanced Filter State
-    const [accidentCountFilter, setAccidentCountFilter] = useState<string>("all")
-    const [serviceCountFilter, setServiceCountFilter] = useState<string>("all")
+    // Sorting State for Accidents and Services columns
+    const [accidentSort, setAccidentSort] = useState<SortDirection | null>(null)
+    const [serviceSort, setServiceSort] = useState<SortDirection | null>(null)
 
-    // Sorting State - Note: backend doesn't support sorting yet, so we'll disable it
+    // General sort state for backend
     const [sortField, setSortField] = useState<SortField>("CarID")
     const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
 
@@ -92,40 +115,14 @@ export default function CarsPage() {
     const [accidentSortField, setAccidentSortField] = useState<"date" | "cost">("date")
     const [accidentSortDirection, setAccidentSortDirection] = useState<SortDirection>("desc")
 
-    // Fetch initial data and when filters change
+    // Fetch ALL data once on mount (no filter dependencies - filters applied client-side)
     useEffect(() => {
-        const filters: any = {}
-
-        // Build filter object for backend
-        if (selectedManufacturer !== "all") {
-            filters.manufacturers = [selectedManufacturer]
-        }
-
-        if (selectedFuelType !== "all") {
-            filters.fuelTypes = [selectedFuelType]
-        }
-
-        if (selectedYear !== "all") {
-            const year = parseInt(selectedYear)
-            filters.yearMin = year
-            filters.yearMax = year
-        }
-
-        if (priceRange[0] > 0 || priceRange[1] < 100000) {
-            filters.priceMin = priceRange[0]
-            filters.priceMax = priceRange[1]
-        }
-
-        // Note: Mileage filter not supported by backend yet
-        // Accident/Service count filters not directly supported
-
-        // Call search API
         searchCars({
-            filters,
-            page: currentPage,
-            limit: ITEMS_PER_PAGE,
+            filters: {},
+            page: 1,
+            limit: FETCH_ALL_LIMIT, // Fetch all 15000 cars
         })
-    }, [selectedManufacturer, selectedFuelType, selectedYear, priceRange, currentPage, searchCars])
+    }, [searchCars])
 
     // Sync page input value with current page
     useEffect(() => {
@@ -139,77 +136,207 @@ export default function CarsPage() {
         return transformCars(searchResponse.data, dealersMap)
     }, [searchResponse, dealersData])
 
-    // Get filter options from all available data (for dropdowns)
-    // We'll use static lists since we can't fetch all 15k cars
+    // Get filter options dynamically from actual car data
     const filterOptions = useMemo(() => {
-        return {
-            manufacturers: ["Audi", "BMW", "Ford", "Honda", "Jaguar", "Land Rover", "Mercedes-Benz", "Nissan", "Porsche", "Toyota", "Volkswagen"],
-            fuelTypes: ["Diesel", "Electric", "Hybrid", "Petrol"],
-            years: Array.from({ length: 11 }, (_, i) => 2024 - i), // 2024 to 2014
-            priceRange: { min: 0, max: 100000 },
-            mileageRange: { min: 0, max: 200000 },
+        if (cars.length === 0) {
+            return {
+                manufacturers: [],
+                fuelTypes: [],
+                years: [],
+                priceRange: { min: 0, max: 100000 },
+                mileageRange: { min: 0, max: 200000 },
+            }
         }
-    }, [])
 
-    // Client-side filtering for search query and advanced filters (on current page results)
+        // Extract unique values from cars data
+        const manufacturers = [...new Set(cars.map(c => c.Manufacturer))].sort()
+        const fuelTypes = [...new Set(cars.map(c => c.FuelType))].sort()
+        const years = [...new Set(cars.map(c => c.YearOfManufacturing))].sort((a, b) => b - a)
+        const prices = cars.map(c => c.Price)
+        const mileages = cars.map(c => c.Mileage)
+
+        return {
+            manufacturers,
+            fuelTypes,
+            years,
+            priceRange: { min: Math.min(...prices), max: Math.max(...prices) },
+            mileageRange: { min: Math.min(...mileages), max: Math.max(...mileages) },
+        }
+    }, [cars])
+
+    // Get dealers list - only dealers that have cars in the data
+    const dealersList = useMemo(() => {
+        if (!dealersData?.data || cars.length === 0) return []
+
+        // Get unique dealer names from cars
+        const dealerNamesInCars = new Set(cars.map(c => c.DealerName))
+
+        // Filter dealers to only those with cars
+        return dealersData.data
+            .filter(d => dealerNamesInCars.has(d.dealer_name))
+            .map(d => ({ id: d.dealer_id, name: d.dealer_name, city: d.dealer_city }))
+            .sort((a, b) => a.name.localeCompare(b.name))
+    }, [dealersData, cars])
+
+    // Client-side filtering - ALL filters applied here for instant results
     const filteredCars = useMemo(() => {
-        return cars.filter((car) => {
-            // Search filter
-            if (searchQuery) {
-                const query = searchQuery.toLowerCase()
-                const matchesSearch =
-                    car.CarID.toLowerCase().includes(query) ||
-                    car.Manufacturer.toLowerCase().includes(query) ||
-                    car.Model.toLowerCase().includes(query)
-                if (!matchesSearch) return false
+        let result = [...cars]
+
+        // CarID search filter
+        if (carIdSearch.trim()) {
+            const query = carIdSearch.trim().toLowerCase()
+            result = result.filter(car => car.CarID.toLowerCase().includes(query))
+        }
+
+        // Manufacturer filter (multi-select)
+        if (selectedManufacturers.length > 0) {
+            result = result.filter(car => selectedManufacturers.includes(car.Manufacturer))
+        }
+
+        // Fuel type filter (multi-select)
+        if (selectedFuelTypes.length > 0) {
+            result = result.filter(car => selectedFuelTypes.includes(car.FuelType))
+        }
+
+        // Year range filter (number inputs)
+        if (yearStart.trim()) {
+            const startYear = parseInt(yearStart)
+            if (!isNaN(startYear)) {
+                result = result.filter(car => car.YearOfManufacturing >= startYear)
             }
-
-            // Mileage filter (client-side since backend doesn't support)
-            if (car.Mileage < mileageRange[0] || car.Mileage > mileageRange[1]) {
-                return false
+        }
+        if (yearEnd.trim()) {
+            const endYear = parseInt(yearEnd)
+            if (!isNaN(endYear)) {
+                result = result.filter(car => car.YearOfManufacturing <= endYear)
             }
+        }
 
-            // Advanced filters (client-side)
-            const accidentCount = car.Accidents.length
-            const serviceCount = car.ServiceHistory.length
+        // Price range filter
+        if (priceRange[0] > 0 || priceRange[1] < 100000) {
+            result = result.filter(car => car.Price >= priceRange[0] && car.Price <= priceRange[1])
+        }
 
-            let matchesAccidents = true
-            if (accidentCountFilter === "0") matchesAccidents = accidentCount === 0
-            else if (accidentCountFilter === "1") matchesAccidents = accidentCount === 1
-            else if (accidentCountFilter === "2+") matchesAccidents = accidentCount >= 2
+        // Dealer filter (multi-select) - match by name since CarRecord uses DealerName
+        if (selectedDealerIds.length > 0) {
+            const selectedDealerNames = dealersList
+                .filter(d => selectedDealerIds.includes(d.id))
+                .map(d => d.name)
+            result = result.filter(car => selectedDealerNames.includes(car.DealerName))
+        }
 
-            let matchesServices = true
-            if (serviceCountFilter === "0") matchesServices = serviceCount === 0
-            else if (serviceCountFilter === "1-2") matchesServices = serviceCount >= 1 && serviceCount <= 2
-            else if (serviceCountFilter === "3+") matchesServices = serviceCount >= 3
+        // Sort by accidents if set
+        if (accidentSort) {
+            result.sort((a, b) => {
+                const aCount = a.AccidentCount ?? a.Accidents.length
+                const bCount = b.AccidentCount ?? b.Accidents.length
+                const diff = aCount - bCount
+                return accidentSort === 'asc' ? diff : -diff
+            })
+        }
 
-            return matchesAccidents && matchesServices
-        })
-    }, [cars, searchQuery, mileageRange, accidentCountFilter, serviceCountFilter])
+        // Sort by services if set
+        if (serviceSort) {
+            result.sort((a, b) => {
+                const aCount = a.ServiceCount ?? a.ServiceHistory.length
+                const bCount = b.ServiceCount ?? b.ServiceHistory.length
+                const diff = aCount - bCount
+                return serviceSort === 'asc' ? diff : -diff
+            })
+        }
 
-    // Metadata from backend response
-    const totalPages = searchResponse?.metadata?.pages || 1
-    const totalCars = searchResponse?.metadata?.total || 0
+        return result
+    }, [cars, carIdSearch, selectedManufacturers, selectedFuelTypes, yearStart, yearEnd, priceRange, selectedDealerIds, dealersList, accidentSort, serviceSort])
+
+    // Pagination constants
+    const DISPLAY_PER_PAGE = 15
+
+    // Client-side pagination - slice the filtered results
+    const paginatedCars = useMemo(() => {
+        const startIndex = (currentPage - 1) * DISPLAY_PER_PAGE
+        const endIndex = startIndex + DISPLAY_PER_PAGE
+        return filteredCars.slice(startIndex, endIndex)
+    }, [filteredCars, currentPage])
+
+    // Metadata - use filtered count for display
+    const totalPages = Math.ceil(filteredCars.length / DISPLAY_PER_PAGE) || 1
+    const totalCars = filteredCars.length
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [carIdSearch, selectedManufacturers, selectedFuelTypes, yearStart, yearEnd, priceRange, selectedDealerIds])
+
+
 
     // Reset filters
     const handleResetFilters = () => {
-        setSelectedManufacturer("all")
-        setSelectedFuelType("all")
-        setSelectedYear("all")
+        setCarIdSearch("")
+        setSelectedManufacturers([])
+        setSelectedFuelTypes([])
+        setYearStart("")
+        setYearEnd("")
         setPriceRange([0, 100000])
-        setMileageRange([0, 200000])
-        setAccidentCountFilter("all")
-        setServiceCountFilter("all")
-        setSearchQuery("")
+        setSelectedDealerIds([])
+        setAccidentSort(null)
+        setServiceSort(null)
         setCurrentPage(1)
     }
 
-    // Filter change handler with page reset
-    const handleFilterChange = (key: string, value: string) => {
-        if (key === "manufacturer") setSelectedManufacturer(value)
-        else if (key === "fuelType") setSelectedFuelType(value)
-        else if (key === "year") setSelectedYear(value)
+    // Toggle manufacturer in multi-select
+    const toggleManufacturer = (manufacturer: string) => {
+        setSelectedManufacturers(prev => {
+            if (prev.includes(manufacturer)) {
+                return prev.filter(m => m !== manufacturer)
+            } else {
+                return [...prev, manufacturer]
+            }
+        })
         setCurrentPage(1)
+    }
+
+    // Toggle fuel type in multi-select
+    const toggleFuelType = (fuelType: string) => {
+        setSelectedFuelTypes(prev => {
+            if (prev.includes(fuelType)) {
+                return prev.filter(f => f !== fuelType)
+            } else {
+                return [...prev, fuelType]
+            }
+        })
+        setCurrentPage(1)
+    }
+
+    // Toggle dealer in multi-select
+    const toggleDealer = (dealerId: string) => {
+        setSelectedDealerIds(prev => {
+            if (prev.includes(dealerId)) {
+                return prev.filter(d => d !== dealerId)
+            } else {
+                return [...prev, dealerId]
+            }
+        })
+        setCurrentPage(1)
+    }
+
+    // Sort handler for accidents column
+    const toggleAccidentSort = () => {
+        setServiceSort(null) // Clear other sort
+        setAccidentSort(prev => {
+            if (prev === null) return 'asc'
+            if (prev === 'asc') return 'desc'
+            return null
+        })
+    }
+
+    // Sort handler for services column
+    const toggleServiceSort = () => {
+        setAccidentSort(null) // Clear other sort
+        setServiceSort(prev => {
+            if (prev === null) return 'asc'
+            if (prev === 'asc') return 'desc'
+            return null
+        })
     }
 
     // Sort Handler (disabled for now since backend doesn't support it)
@@ -283,7 +410,7 @@ export default function CarsPage() {
         const highestSeverity =
             accidents.length > 0
                 ? accidents.reduce((highest, a) => {
-                    const severityOrder = { Minor: 1, Moderate: 2, Major: 3 }
+                    const severityOrder: Record<string, number> = { Minor: 1, Moderate: 2, Major: 3, Severe: 4 }
                     return severityOrder[a.Severity] > severityOrder[highest.Severity] ? a : highest
                 }).Severity
                 : null
@@ -308,7 +435,7 @@ export default function CarsPage() {
     }
 
     const severityColors: Record<string, string> = {
-        Minor: "bg-slate-500/20 text-slate-300 border-slate-500/30",
+        Minor: "bg-slate-500/20 text-slate-700 dark:text-slate-300 border-slate-500/30",
         Moderate: "bg-amber-500/20 text-amber-400 border-amber-500/30",
         Major: "bg-red-500/20 text-red-400 border-red-500/30",
     }
@@ -351,23 +478,29 @@ export default function CarsPage() {
 
     return (
         <div className="h-screen bg-background flex flex-col overflow-hidden">
-            <Header
-                title="Cars"
-                subtitle="Browse and explore vehicle inventory"
-                filters={{
-                    manufacturers: filterOptions.manufacturers,
-                    fuelTypes: filterOptions.fuelTypes,
-                    years: filterOptions.years,
-                }}
-                selectedFilters={{
-                    manufacturer: selectedManufacturer,
-                    fuelType: selectedFuelType,
-                    year: selectedYear,
-                    city: "all", // Cars page doesn't filter by city
-                }}
-                onFilterChange={handleFilterChange}
-                onReset={handleResetFilters}
-            />
+            {/* Simple header with title and reset button */}
+            <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                <div className="flex h-16 items-center justify-between px-6">
+                    <div>
+                        <h1 className="text-lg font-semibold">Cars</h1>
+                        <p className="text-sm text-muted-foreground">Browse and explore vehicle inventory</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {/* Active filters indicator */}
+                        {(carIdSearch || selectedManufacturers.length > 0 || selectedFuelTypes.length > 0 ||
+                            yearStart || yearEnd || priceRange[0] > 0 || priceRange[1] < 100000 ||
+                            selectedDealerIds.length > 0 || accidentSort || serviceSort) && (
+                                <Badge variant="secondary" className="text-xs">
+                                    Filters active
+                                </Badge>
+                            )}
+                        <Button variant="outline" size="sm" onClick={handleResetFilters}>
+                            <X className="h-4 w-4 mr-1" />
+                            Reset All
+                        </Button>
+                    </div>
+                </div>
+            </header>
 
             <div className="flex-1 p-6 overflow-hidden flex flex-col">
                 <Card className="bg-card border-border flex-1 flex flex-col overflow-hidden">
@@ -380,151 +513,278 @@ export default function CarsPage() {
                                     {totalCars} vehicles
                                 </Badge>
                             </CardTitle>
-                            <div className="relative w-72">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search by Car ID or Manufacturer..."
-                                    className="pl-9 h-9"
-                                    value={searchQuery}
-                                    onChange={(e) => {
-                                        setSearchQuery(e.target.value)
-                                        setCurrentPage(1)
-                                    }}
-                                />
-                            </div>
                         </div>
                     </CardHeader>
                     <CardContent className="p-0 flex-1 flex flex-col min-h-0">
-                        {/* Advanced Filters */}
-                        <div className="px-6 pb-4 space-y-4 border-b border-border flex-shrink-0">
-                            {/* Price & Mileage Sliders */}
-                            <div className="grid grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">Price Range</span>
-                                        <span className="font-mono text-xs text-primary">
-                                            £{priceRange[0].toLocaleString()} - £{priceRange[1].toLocaleString()}
-                                        </span>
-                                    </div>
-                                    <Slider
-                                        min={filterOptions.priceRange.min}
-                                        max={filterOptions.priceRange.max}
-                                        step={1000}
-                                        value={priceRange}
-                                        onValueChange={(value) => setPriceRange(value as [number, number])}
-                                        onValueCommit={(value) => {
-                                            setPriceRange(value as [number, number])
-                                            setCurrentPage(1)
-                                        }}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">Mileage Range</span>
-                                        <span className="font-mono text-xs text-accent">
-                                            {mileageRange[0].toLocaleString()} - {mileageRange[1].toLocaleString()} mi
-                                        </span>
-                                    </div>
-                                    <Slider
-                                        min={filterOptions.mileageRange.min}
-                                        max={filterOptions.mileageRange.max}
-                                        step={1000}
-                                        value={mileageRange}
-                                        onValueChange={(value) => setMileageRange(value as [number, number])}
-                                        onValueCommit={(value) => {
-                                            setMileageRange(value as [number, number])
-                                            setCurrentPage(1)
-                                        }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-4 flex-wrap">
-                                <div className="flex items-center gap-2">
-                                    <Filter className="h-4 w-4 text-muted-foreground" />
-                                    <span className="text-sm text-muted-foreground">Advanced:</span>
-                                </div>
-                                <Select
-                                    value={accidentCountFilter}
-                                    onValueChange={(v) => {
-                                        setAccidentCountFilter(v)
-                                        setCurrentPage(1)
-                                    }}
-                                >
-                                    <SelectTrigger className="w-[150px] h-8">
-                                        <SelectValue placeholder="Accidents" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Accidents</SelectItem>
-                                        <SelectItem value="0">No Accidents</SelectItem>
-                                        <SelectItem value="1">1 Accident</SelectItem>
-                                        <SelectItem value="2+">2+ Accidents</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <Select
-                                    value={serviceCountFilter}
-                                    onValueChange={(v) => {
-                                        setServiceCountFilter(v)
-                                        setCurrentPage(1)
-                                    }}
-                                >
-                                    <SelectTrigger className="w-[150px] h-8">
-                                        <SelectValue placeholder="Services" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Services</SelectItem>
-                                        <SelectItem value="0">No Services</SelectItem>
-                                        <SelectItem value="1-2">1-2 Services</SelectItem>
-                                        <SelectItem value="3+">3+ Services</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {(accidentCountFilter !== "all" || serviceCountFilter !== "all") && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 text-xs"
-                                        onClick={() => {
-                                            setAccidentCountFilter("all")
-                                            setServiceCountFilter("all")
-                                        }}
-                                    >
-                                        <X className="h-3 w-3 mr-1" />
-                                        Clear
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-
                         <div className="flex-1 min-h-0">
                             <ScrollArea className="h-full">
                                 <Table>
+                                    {/* Table Header with Popover Filters */}
                                     <TableHeader className="sticky top-0 bg-card z-10">
                                         <TableRow className="border-border hover:bg-transparent">
-                                            <TableHead>
-                                                <SortButton field="CarID">Car ID</SortButton>
+                                            {/* CarID Column */}
+                                            <TableHead className="w-[130px]">
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-xs font-medium">Car ID</span>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button variant="ghost" size="sm" className={`h-6 w-6 p-0 ${carIdSearch ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                                <Search className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-64 p-3" align="start">
+                                                            <div className="space-y-2">
+                                                                <Input
+                                                                    placeholder="Enter Car ID"
+                                                                    className="h-8"
+                                                                    value={carIdSearch}
+                                                                    onChange={(e) => {
+                                                                        setCarIdSearch(e.target.value)
+                                                                        setCurrentPage(1)
+                                                                    }}
+                                                                />
+                                                                {carIdSearch && (
+                                                                    <Button variant="ghost" size="sm" className="h-7 text-xs w-full" onClick={() => { setCarIdSearch(""); setCurrentPage(1) }}>
+                                                                        <X className="h-3 w-3 mr-1" /> Xóa
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
                                             </TableHead>
-                                            <TableHead>
-                                                <SortButton field="Manufacturer">Manufacturer</SortButton>
+
+                                            {/* Manufacturer Column */}
+                                            <TableHead className="w-[140px]">
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-xs font-medium">Manufacturer</span>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button variant="ghost" size="sm" className={`h-6 w-6 p-0 ${selectedManufacturers.length > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                                <Filter className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-56 p-3" align="start">
+                                                            <div className="space-y-2">
+                                                                <div className="max-h-48 overflow-y-auto space-y-1">
+                                                                    {filterOptions.manufacturers.map((m) => (
+                                                                        <div
+                                                                            key={m}
+                                                                            className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm"
+                                                                            onClick={() => toggleManufacturer(m)}
+                                                                        >
+                                                                            <div className={`w-4 h-4 border rounded flex items-center justify-center ${selectedManufacturers.includes(m) ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
+                                                                                {selectedManufacturers.includes(m) && <Check className="h-3 w-3 text-primary-foreground" />}
+                                                                            </div>
+                                                                            <span className="text-sm">{m}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                                {selectedManufacturers.length > 0 && (
+                                                                    <Button variant="ghost" size="sm" className="h-7 text-xs w-full" onClick={() => { setSelectedManufacturers([]); setCurrentPage(1) }}>
+                                                                        <X className="h-3 w-3 mr-1" /> Reset
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
                                             </TableHead>
-                                            <TableHead>Model</TableHead>
-                                            <TableHead>
-                                                <SortButton field="Year">Year</SortButton>
+
+                                            {/* Model Column */}
+                                            <TableHead className="w-[100px]">
+                                                <span className="text-xs font-medium">Model</span>
                                             </TableHead>
-                                            <TableHead>
-                                                <SortButton field="Price">Price</SortButton>
+
+                                            {/* Year Column - Number Inputs */}
+                                            <TableHead className="w-[90px]">
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-xs font-medium">Year</span>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button variant="ghost" size="sm" className={`h-6 w-6 p-0 ${yearStart || yearEnd ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                                <Filter className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-56 p-3" align="start">
+                                                            <div className="space-y-3">
+                                                                <div className="flex gap-2 items-center">
+                                                                    <Input
+                                                                        type="number"
+                                                                        placeholder="From"
+                                                                        className="h-8 flex-1"
+                                                                        value={yearStart}
+                                                                        onChange={(e) => setYearStart(e.target.value)}
+                                                                    />
+                                                                    <span className="text-muted-foreground">→</span>
+                                                                    <Input
+                                                                        type="number"
+                                                                        placeholder="To"
+                                                                        className="h-8 flex-1"
+                                                                        value={yearEnd}
+                                                                        onChange={(e) => setYearEnd(e.target.value)}
+                                                                    />
+                                                                </div>
+                                                                {(yearStart || yearEnd) && (
+                                                                    <Button variant="ghost" size="sm" className="h-7 text-xs w-full" onClick={() => { setYearStart(''); setYearEnd(''); setCurrentPage(1) }}>
+                                                                        <X className="h-3 w-3 mr-1" /> Reset
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
                                             </TableHead>
-                                            <TableHead>Fuel</TableHead>
-                                            <TableHead>
-                                                <SortButton field="Accidents">Accidents</SortButton>
+
+                                            {/* Price Column */}
+                                            <TableHead className="w-[110px]">
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-xs font-medium">Price</span>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button variant="ghost" size="sm" className={`h-6 w-6 p-0 ${priceRange[0] > 0 || priceRange[1] < 100000 ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                                <Filter className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-72 p-3" align="start">
+                                                            <div className="space-y-3">
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-xs font-medium text-muted-foreground">Price Range</span>
+                                                                    <span className="text-xs font-mono text-primary">
+                                                                        £{priceRange[0].toLocaleString()} - £{priceRange[1].toLocaleString()}
+                                                                    </span>
+                                                                </div>
+                                                                <Slider
+                                                                    min={0}
+                                                                    max={100000}
+                                                                    step={1000}
+                                                                    value={priceRange}
+                                                                    onValueChange={(value) => setPriceRange(value as [number, number])}
+                                                                    onValueCommit={() => setCurrentPage(1)}
+                                                                />
+                                                                {(priceRange[0] > 0 || priceRange[1] < 100000) && (
+                                                                    <Button variant="ghost" size="sm" className="h-7 text-xs w-full" onClick={() => { setPriceRange([0, 100000]); setCurrentPage(1) }}>
+                                                                        <X className="h-3 w-3 mr-1" /> Reset
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
                                             </TableHead>
-                                            <TableHead>
-                                                <SortButton field="Services">Services</SortButton>
+
+                                            {/* Fuel Type Column */}
+                                            {/* Fuel Type Column - Multi-select */}
+                                            <TableHead className="w-[100px]">
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-xs font-medium">Fuel</span>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button variant="ghost" size="sm" className={`h-6 w-6 p-0 ${selectedFuelTypes.length > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                                <Filter className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-48 p-3" align="start">
+                                                            <div className="space-y-2">
+                                                                <div className="space-y-1">
+                                                                    {filterOptions.fuelTypes.map((f) => (
+                                                                        <div
+                                                                            key={f}
+                                                                            className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm"
+                                                                            onClick={() => toggleFuelType(f)}
+                                                                        >
+                                                                            <div className={`w-4 h-4 border rounded flex items-center justify-center ${selectedFuelTypes.includes(f) ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
+                                                                                {selectedFuelTypes.includes(f) && <Check className="h-3 w-3 text-primary-foreground" />}
+                                                                            </div>
+                                                                            <span className="text-sm">{f}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                                {selectedFuelTypes.length > 0 && (
+                                                                    <Button variant="ghost" size="sm" className="h-7 text-xs w-full" onClick={() => { setSelectedFuelTypes([]); setCurrentPage(1) }}>
+                                                                        <X className="h-3 w-3 mr-1" /> Reset
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
                                             </TableHead>
-                                            <TableHead>Dealer</TableHead>
+
+                                            {/* Accidents Column with Sort */}
+                                            <TableHead className="w-[100px]">
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-xs font-medium">Accidents</span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className={`h-6 w-6 p-0 ${accidentSort ? 'text-primary' : 'text-muted-foreground'}`}
+                                                        onClick={toggleAccidentSort}
+                                                    >
+                                                        {accidentSort === 'asc' && <ArrowUp className="h-3.5 w-3.5" />}
+                                                        {accidentSort === 'desc' && <ArrowDown className="h-3.5 w-3.5" />}
+                                                        {!accidentSort && <ArrowUpDown className="h-3.5 w-3.5" />}
+                                                    </Button>
+                                                </div>
+                                            </TableHead>
+
+                                            {/* Services Column with Sort */}
+                                            <TableHead className="w-[100px]">
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-xs font-medium">Services</span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className={`h-6 w-6 p-0 ${serviceSort ? 'text-primary' : 'text-muted-foreground'}`}
+                                                        onClick={toggleServiceSort}
+                                                    >
+                                                        {serviceSort === 'asc' && <ArrowUp className="h-3.5 w-3.5" />}
+                                                        {serviceSort === 'desc' && <ArrowDown className="h-3.5 w-3.5" />}
+                                                        {!serviceSort && <ArrowUpDown className="h-3.5 w-3.5" />}
+                                                    </Button>
+                                                </div>
+                                            </TableHead>
+
+                                            {/* Dealer Column - Multi-select */}
+                                            <TableHead className="w-[140px]">
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-xs font-medium">Dealer</span>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button variant="ghost" size="sm" className={`h-6 w-6 p-0 ${selectedDealerIds.length > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                                <Filter className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-64 p-3" align="end">
+                                                            <div className="space-y-2">
+                                                                <div className="max-h-48 overflow-y-auto space-y-1">
+                                                                    {dealersList.map((d) => (
+                                                                        <div
+                                                                            key={d.id}
+                                                                            className="flex items-center gap-2 px-2 py-1.5 cursor-pointer hover:bg-accent rounded-sm"
+                                                                            onClick={() => toggleDealer(d.id)}
+                                                                        >
+                                                                            <div className={`w-4 h-4 border rounded flex items-center justify-center ${selectedDealerIds.includes(d.id) ? 'bg-primary border-primary' : 'border-muted-foreground'}`}>
+                                                                                {selectedDealerIds.includes(d.id) && <Check className="h-3 w-3 text-primary-foreground" />}
+                                                                            </div>
+                                                                            <span className="text-sm truncate">{d.name}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                                {selectedDealerIds.length > 0 && (
+                                                                    <Button variant="ghost" size="sm" className="h-7 text-xs w-full" onClick={() => { setSelectedDealerIds([]); setCurrentPage(1) }}>
+                                                                        <X className="h-3 w-3 mr-1" /> Bỏ lọc
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
+                                            </TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredCars.map((car) => (
+                                        {paginatedCars.map((car) => (
                                             <TableRow
                                                 key={car.CarID}
                                                 className="border-border cursor-pointer transition-colors hover:bg-muted/50"
@@ -541,13 +801,13 @@ export default function CarsPage() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant={car.Accidents.length > 0 ? "destructive" : "secondary"} className="text-xs">
-                                                        {car.Accidents.length}
+                                                    <Badge variant={(car.AccidentCount ?? car.Accidents.length) > 0 ? "destructive" : "secondary"} className="text-xs">
+                                                        {car.AccidentCount ?? car.Accidents.length}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge variant="secondary" className="text-xs">
-                                                        {car.ServiceHistory.length}
+                                                        {car.ServiceCount ?? car.ServiceHistory.length}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted-foreground">{car.DealerName}</TableCell>
@@ -558,22 +818,23 @@ export default function CarsPage() {
                             </ScrollArea>
                         </div>
 
-                        <div className="px-6 py-4 border-t border-border flex items-center justify-between flex-shrink-0">
-                            <p className="text-sm text-muted-foreground">
-                                Showing {filteredCars.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} -{" "}
-                                {Math.min(currentPage * ITEMS_PER_PAGE, totalCars)} of {totalCars} vehicles
+                        <div className="px-4 h-12 border-t border-border flex items-center justify-between flex-shrink-0">
+                            <p className="text-sm text-muted-foreground leading-none">
+                                Showing {filteredCars.length > 0 ? (currentPage - 1) * DISPLAY_PER_PAGE + 1 : 0} -{" "}
+                                {Math.min(currentPage * DISPLAY_PER_PAGE, totalCars)} of {totalCars} vehicles
                             </p>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5">
                                 <Button
                                     variant="outline"
                                     size="sm"
+                                    className="h-7 w-7 p-0"
                                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                                     disabled={currentPage === 1}
                                 >
-                                    <ChevronLeft className="h-4 w-4" />
+                                    <ChevronLeft className="h-3.5 w-3.5" />
                                 </Button>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm text-muted-foreground">Page</span>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-sm text-muted-foreground leading-none">Page</span>
                                     <Input
                                         type="number"
                                         min={1}
@@ -599,17 +860,18 @@ export default function CarsPage() {
                                                 }
                                             }
                                         }}
-                                        className="h-8 w-16 text-center text-sm"
+                                        className="h-7 w-14 text-center text-sm"
                                     />
-                                    <span className="text-sm text-muted-foreground">of {totalPages || 1}</span>
+                                    <span className="text-sm text-muted-foreground leading-none">of {totalPages || 1}</span>
                                 </div>
                                 <Button
                                     variant="outline"
                                     size="sm"
+                                    className="h-7 w-7 p-0"
                                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                                     disabled={currentPage === totalPages || totalPages === 0}
                                 >
-                                    <ChevronRight className="h-4 w-4" />
+                                    <ChevronRight className="h-3.5 w-3.5" />
                                 </Button>
                             </div>
                         </div>
@@ -750,7 +1012,7 @@ export default function CarsPage() {
                                                             </div>
                                                             <div className="p-3 rounded bg-muted/50">
                                                                 <p className="text-xs text-muted-foreground">Latest Date</p>
-                                                                <p className="font-medium">{carSummary.latestServiceDate}</p>
+                                                                <p className="font-medium">{carSummary.latestServiceDate !== "N/A" ? formatDate(carSummary.latestServiceDate) : "N/A"}</p>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -771,7 +1033,7 @@ export default function CarsPage() {
                                                             </div>
                                                             <div className="p-3 rounded bg-muted/50">
                                                                 <p className="text-xs text-muted-foreground">Latest Date</p>
-                                                                <p className="font-medium">{carSummary.latestAccidentDate}</p>
+                                                                <p className="font-medium">{carSummary.latestAccidentDate !== "N/A" ? formatDate(carSummary.latestAccidentDate) : "N/A"}</p>
                                                             </div>
                                                             <div className="p-3 rounded bg-muted/50">
                                                                 <p className="text-xs text-muted-foreground">Highest Severity</p>
@@ -829,7 +1091,7 @@ export default function CarsPage() {
                                                             {sortedServices.map((service) => (
                                                                 <TableRow key={service.ServiceID} className="border-border">
                                                                     <TableCell className="font-mono text-xs">{service.ServiceID}</TableCell>
-                                                                    <TableCell className="text-xs">{service.DateOfService}</TableCell>
+                                                                    <TableCell className="text-xs">{formatDate(service.DateOfService)}</TableCell>
                                                                     <TableCell className="text-xs">{service.ServiceType}</TableCell>
                                                                     <TableCell className="text-xs text-right font-semibold">
                                                                         £{service.CostOfService.toLocaleString()}
@@ -888,7 +1150,7 @@ export default function CarsPage() {
                                                             {filteredAndSortedAccidents.map((accident) => (
                                                                 <TableRow key={accident.AccidentID} className="border-border">
                                                                     <TableCell className="font-mono text-xs">{accident.AccidentID}</TableCell>
-                                                                    <TableCell className="text-xs">{accident.DateOfAccident}</TableCell>
+                                                                    <TableCell className="text-xs">{formatDate(accident.DateOfAccident)}</TableCell>
                                                                     <TableCell className="text-xs w-[150px] break-words whitespace-normal">
                                                                         {accident.Description}
                                                                     </TableCell>

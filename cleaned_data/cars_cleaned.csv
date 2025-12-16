@@ -1,4 +1,4 @@
-CarID,Manufacturer,Model,Engine size,Fuel_Type,Year_of_Manufacturing,Mileage,Price,Features,DealerID
+car_id,manufacturer,model,engine_size,fuel_type,year_of_manufacturing,mileage,price,features,dealer_id
 C33554,Toyota,RAV4,2.4,Hybrid,2020,21317,68597,"Bluetooth, Heated Seats",D00001
 C09428,Ford,Focus,1.8,Petrol,2018,22500,35276,"Bluetooth, Cruise Control, Heated Seats",D00002
 C00200,Ford,Mondeo,1.6,Diesel,2013,79521,17370,"Air Conditioning, Cruise Control, Heated Seats, Sunroof",D00003

@@ -1,4 +1,4 @@
-DealerID,DealerName,DealerCity,Latitude,Longitude
+dealer_id,dealer_name,dealer_city,latitude,longitude
 D00001,"Proctor, Villarreal and Hurley",Gloucester,53.713263,0.738007
 D00002,"Walker, Baxter and Daniel",Brighton,53.314723,-0.5895
 D00003,Ingram-Mitchell,Durham,54.966148,-2.512489

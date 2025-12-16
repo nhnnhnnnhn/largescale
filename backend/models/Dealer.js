@@ -7,46 +7,19 @@ const dealerSchema = new mongoose.Schema({
         unique: true,
         index: true
     },
-    name: {
+    dealer_name: {
         type: String,
         required: true
     },
-    city: {
+    dealer_city: {
         type: String,
         index: true
     },
-    location: {
-        type: {
-            type: String,
-            enum: ['Point'],
-            default: 'Point'
-        },
-        coordinates: {
-            type: [Number], // [longitude, latitude]
-            index: '2dsphere' // Geospatial index
-        }
-    },
-    contact: {
-        phone: String,
-        email: String
-    },
-    statistics: {
-        total_cars: {
-            type: Number,
-            default: 0
-        },
-        average_price: {
-            type: Number,
-            default: 0
-        }
-    },
-    created_at: {
-        type: Date,
-        default: Date.now
-    }
+    latitude: Number,
+    longitude: Number
 });
 
-// Geospatial index for location-based queries
-dealerSchema.index({ location: '2dsphere' });
+// Index for city queries
+dealerSchema.index({ dealer_city: 1 });
 
 module.exports = mongoose.model('Dealer', dealerSchema, 'dealers');

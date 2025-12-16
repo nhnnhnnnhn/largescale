@@ -1,72 +1,47 @@
-// Backend API Response Types (snake_case)
+// Backend API Response Types (snake_case) - Flat schema matching CSV
 export interface BackendCar {
     _id?: string
     car_id: string
     manufacturer: string
     model: string
-    specifications: {
-        engine_size?: number
-        fuel_type: string
-        year_of_manufacturing: number
-        mileage: number
-    }
+    engine_size?: number
+    fuel_type: string
+    year_of_manufacturing: number
+    mileage: number
     price: number
-    features: string[]
+    features: string  // comma-separated string
     dealer_id: string
-    service_summary: {
-        total_services: number
-        last_service_date?: string
-        total_cost: number
-        last_service_type?: string
-    }
-    accident_summary: {
-        total_accidents: number
-        last_accident_date?: string
-        total_repair_cost: number
-        highest_severity?: string
-    }
-    created_at?: string
-    updated_at?: string
+    // Added by search endpoint - counts from related collections
+    accident_count?: number
+    service_count?: number
 }
 
 export interface BackendService {
     _id?: string
     service_id: string
     car_id: string
-    date: string
-    type: string
-    cost: number
-    description?: string
+    date_of_service: string
+    service_type: string
+    cost_of_service: number
 }
 
 export interface BackendAccident {
     _id?: string
     accident_id: string
     car_id: string
-    date: string
+    date_of_accident: string
     description: string
     cost_of_repair: number
-    severity: "Minor" | "Moderate" | "Major"
+    severity: "Minor" | "Moderate" | "Major" | "Severe"
 }
 
 export interface BackendDealer {
     _id?: string
     dealer_id: string
-    name: string
-    city: string
-    location?: {
-        type: "Point"
-        coordinates: [number, number] // [longitude, latitude]
-    }
-    contact?: {
-        phone?: string
-        email?: string
-    }
-    statistics: {
-        total_cars: number
-        average_price: number
-    }
-    created_at?: string
+    dealer_name: string
+    dealer_city: string
+    latitude: number
+    longitude: number
 }
 
 // API Response Wrappers
@@ -182,6 +157,7 @@ export interface AccidentTrend {
 
 // Search Request Body
 export interface SearchCarsRequest {
+    carId?: string
     manufacturers?: string[]
     priceMin?: number
     priceMax?: number
@@ -190,6 +166,7 @@ export interface SearchCarsRequest {
     fuelTypes?: string[]
     features?: string[]
     dealerCity?: string
-    minServices?: number
-    maxAccidents?: number
+    dealerIds?: string[]
+    sortField?: string
+    sortOrder?: 'asc' | 'desc'
 }
