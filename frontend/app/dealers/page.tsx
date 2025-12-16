@@ -84,13 +84,6 @@ export default function DealersPage() {
         })
     }
 
-    // Reset all filters
-    const handleResetFilters = () => {
-        setDealerIdSearch("")
-        setDealerNameSearch("")
-        setSelectedCities([])
-        setCurrentPage(1)
-    }
 
     // Check if any filter is active
     const hasActiveFilters = dealerIdSearch || dealerNameSearch || selectedCities.length > 0
@@ -246,13 +239,15 @@ export default function DealersPage() {
     }
 
     return (
-        <div className="min-h-screen bg-background">
-            <Header
-                title="Dealers"
-                subtitle="Dealer network and performance analytics"
-            />
+        <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+            {/* Header - fixed height */}
+            <div className="h-16 bg-white border-b border-gray-200 px-6 flex items-center flex-shrink-0">
+                <div>
+                    <h1 className="text-xl font-bold text-gray-900">Dealers</h1>
+                </div>
+            </div>
 
-            <div className="p-6 space-y-6">
+            <div className="flex-1 p-4 overflow-hidden flex flex-col space-y-4">
                 {/* Stats Overview */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <Card className="bg-card border-border">
@@ -312,8 +307,8 @@ export default function DealersPage() {
                 </div>
 
                 {/* Dealers Table */}
-                <Card className="bg-card border-border">
-                    <CardHeader className="pb-3">
+                <Card className="bg-card border-border flex-1 flex flex-col overflow-hidden">
+                    <CardHeader className="pb-3 flex-shrink-0">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <CardTitle className="text-base">Dealer List</CardTitle>
@@ -323,14 +318,10 @@ export default function DealersPage() {
                                 {hasActiveFilters && (
                                     <Badge variant="secondary" className="text-xs">Filters active</Badge>
                                 )}
-                                <Button variant="outline" size="sm" onClick={handleResetFilters}>
-                                    <X className="h-4 w-4 mr-1" />
-                                    Reset All
-                                </Button>
                             </div>
                         </div>
                     </CardHeader>
-                    <CardContent className="p-0">
+                    <CardContent className="p-0 flex-1 overflow-auto">
                         <div>
                             <Table>
                                 <TableHeader className="sticky top-0 bg-card z-10">

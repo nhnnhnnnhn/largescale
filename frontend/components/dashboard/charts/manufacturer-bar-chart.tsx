@@ -4,16 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
 import { useGetByManufacturerQuery } from "@/store/services/analyticsApi"
 
-// Blue gradient colors for bars
+// Blue gradient colors for bars (darker for higher values)
 const COLORS = [
-  "#1e40af", // Blue 800
-  "#1d4ed8", // Blue 700
-  "#2563eb", // Blue 600
-  "#3b82f6", // Blue 500
-  "#60a5fa", // Blue 400
-  "#93c5fd", // Blue 300
-  "#bfdbfe", // Blue 200
-  "#dbeafe", // Blue 100
+  "#1F3C88", // VW - darkest
+  "#2F5BEA", // Ford
+  "#4C7DFF", // Toyota
+  "#78A6FF", // BMW
+  "#C7DBFF", // Porsche - lightest
 ]
 
 export function ManufacturerBarChart() {
@@ -57,6 +54,7 @@ export function ManufacturerBarChart() {
                     boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                   }}
                   labelStyle={{ color: "#111827", fontWeight: 600 }}
+                  itemStyle={{ color: "#111827" }}
                   formatter={(value: number) => [value.toLocaleString(), "Cars"]}
                 />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>

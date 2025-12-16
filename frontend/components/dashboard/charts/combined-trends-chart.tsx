@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { useGetServiceTrendsQuery, useGetAccidentTrendsQuery } from "@/store/services/analyticsApi"
 
-// Blue color palette for lines
+// Line colors - blue for services, orange for accidents (warning)
 const COLORS = {
-    services: "#2563eb",   // Blue 600 - primary
-    accidents: "#f59e0b",  // Amber 500 - contrast for visibility
+    services: "#2F5BEA",   // Blue - operational
+    accidents: "#F59E0B",  // Orange - warning
 }
 
 export function CombinedTrendsChart() {
@@ -69,10 +69,12 @@ export function CombinedTrendsChart() {
                                     }}
                                     labelStyle={{ color: "#111827", fontWeight: 600 }}
                                     labelFormatter={(value) => {
-                                        const [year, month] = value.split('-')
-                                        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                                        return `${monthNames[parseInt(month) - 1]} ${year}`
+                                        // Format: "2022-H1" or "2022-H2"
+                                        const [year, half] = value.split('-')
+                                        const halfLabel = half === 'H1' ? 'Jan-Jun' : 'Jul-Dec'
+                                        return `${halfLabel} ${year}`
                                     }}
+                                    itemStyle={{ color: "#111827" }}
                                 />
                                 <Legend
                                     wrapperStyle={{ paddingTop: "10px" }}

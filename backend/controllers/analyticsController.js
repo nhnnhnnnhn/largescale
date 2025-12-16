@@ -138,20 +138,23 @@ exports.getServiceTrends = async (req, res, next) => {
         const trends = await Service.aggregate([
             {
                 $match: {
-                    date_of_service: { $gte: '2021-01-01', $lte: '2024-12-31' }
+                    date_of_service: {
+                        $gte: new Date('2021-01-01'),
+                        $lte: new Date('2024-12-31')
+                    }
                 }
             },
             {
                 $addFields: {
-                    year: { $substr: ['$date_of_service', 0, 4] },
-                    month: { $toInt: { $substr: ['$date_of_service', 5, 2] } }
+                    year: { $year: '$date_of_service' },
+                    month: { $month: '$date_of_service' }
                 }
             },
             {
                 $addFields: {
                     halfYear: {
                         $concat: [
-                            '$year',
+                            { $toString: '$year' },
                             '-',
                             { $cond: [{ $lte: ['$month', 6] }, 'H1', 'H2'] }
                         ]
@@ -283,8 +286,8 @@ exports.getMileagePrice = async (req, res, next) => {
 // @access  Public
 exports.getPriceDistribution = async (req, res, next) => {
     try {
-        const binSize = 10000; // Fixed 10k GBP bins
-        const maxBins = 20; // Up to 200k
+        const binSize = 20000; // Fixed 20k GBP bins
+        const maxBins = 10; // Up to 200k
 
         // Create fixed boundaries: 0, 10000, 20000, ..., 200000
         const boundaries = Array.from({ length: maxBins + 1 }, (_, i) => i * binSize);
@@ -384,20 +387,23 @@ exports.getAccidentTrends = async (req, res, next) => {
         const trends = await Accident.aggregate([
             {
                 $match: {
-                    date_of_accident: { $gte: '2021-01-01', $lte: '2024-12-31' }
+                    date_of_accident: {
+                        $gte: new Date('2021-01-01'),
+                        $lte: new Date('2024-12-31')
+                    }
                 }
             },
             {
                 $addFields: {
-                    year: { $substr: ['$date_of_accident', 0, 4] },
-                    month: { $toInt: { $substr: ['$date_of_accident', 5, 2] } }
+                    year: { $year: '$date_of_accident' },
+                    month: { $month: '$date_of_accident' }
                 }
             },
             {
                 $addFields: {
                     halfYear: {
                         $concat: [
-                            '$year',
+                            { $toString: '$year' },
                             '-',
                             { $cond: [{ $lte: ['$month', 6] }, 'H1', 'H2'] }
                         ]

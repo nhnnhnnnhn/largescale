@@ -1,6 +1,5 @@
 "use client"
 
-import { StatsCards } from "@/components/dashboard/stats-cards"
 import { ManufacturerBarChart } from "@/components/dashboard/charts/manufacturer-bar-chart"
 import { FuelTypePieChart } from "@/components/dashboard/charts/fuel-type-pie-chart"
 import { CombinedTrendsChart } from "@/components/dashboard/charts/combined-trends-chart"
@@ -10,21 +9,17 @@ import { DealerSalesChart } from "@/components/dashboard/charts/dealer-sales-cha
 
 export default function DashboardPage() {
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header - same height as sidebar header (h-16) */}
-            <div className="h-16 bg-white border-b border-gray-200 px-6 flex items-center">
+        <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+            {/* Header - fixed height */}
+            <div className="h-16 bg-white border-b border-gray-200 px-6 flex items-center flex-shrink-0">
                 <div>
-                    <h1 className="text-xl font-bold text-gray-900">Car Sales Dashboard</h1>
-                    <p className="text-xs text-gray-500">MongoDB-based interactive data exploration</p>
+                    <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
                 </div>
             </div>
 
-            <div className="p-6 space-y-6">
-                {/* Stats Cards - 4 equal columns */}
-                <StatsCards />
-
-                {/* Charts Grid - 3 columns, 2 rows */}
-                <div className="grid grid-cols-3 gap-6">
+            {/* Charts Grid - fills remaining space */}
+            <div className="flex-1 p-4 overflow-hidden">
+                <div className="grid grid-cols-3 grid-rows-2 gap-4 h-full">
                     {/* Row 1 */}
                     <ManufacturerBarChart />
                     <FuelTypePieChart />
@@ -39,3 +34,4 @@ export default function DashboardPage() {
         </div>
     )
 }
+

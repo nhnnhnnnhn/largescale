@@ -81,6 +81,5 @@ const HOST = '0.0.0.0';
 app.listen(PORT, HOST, () => {
     console.log(`\nServer running in ${process.env.NODE_ENV} mode on ${HOST}:${PORT}`);
     console.log(`API: http://localhost:${PORT}`);
-    console.log(`External API: http://159.195.33.254:${PORT}`);
     console.log(`Frontend: ${process.env.CLIENT_URL}\n`);
 });

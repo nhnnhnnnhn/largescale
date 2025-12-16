@@ -4,14 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
 import { useGetByFuelTypeQuery } from "@/store/services/analyticsApi"
 
-// Blue-based color palette for pie segments
-const COLORS = [
-  "#1e40af", // Blue 800 - Diesel
-  "#3b82f6", // Blue 500 - Petrol
-  "#60a5fa", // Blue 400 - Hybrid
-  "#93c5fd", // Blue 300
-  "#bfdbfe", // Blue 200
-]
+// Fuel type specific colors
+const COLORS: { [key: string]: string } = {
+  "Petrol": "#1F3C88", // Dark blue
+  "Diesel": "#2F5BEA", // Medium blue
+  "Hybrid": "#78A6FF", // Light blue
+  "Electric": "#C7DBFF", // Very light blue (for future)
+}
 
 export function FuelTypePieChart() {
   const { data, isLoading, error } = useGetByFuelTypeQuery()
@@ -33,20 +32,20 @@ export function FuelTypePieChart() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart margin={{ top: 15, right: 10, bottom: 10, left: 10 }}>
                 <Pie
                   data={data.data.map((item) => ({ name: item.fuel_type, value: item.count, percentage: item.percentage }))}
                   cx="50%"
-                  cy="45%"
-                  innerRadius={55}
-                  outerRadius={85}
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={75}
                   paddingAngle={3}
                   dataKey="value"
-                  label={({ percentage }) => `${percentage}%`}
+                  label={(props: any) => `${props.percentage}%`}
                   labelLine={{ stroke: "#6b7280" }}
                 >
-                  {data.data.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {data.data.map((item, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[item.fuel_type] || "#4C7DFF"} />
                   ))}
                 </Pie>
                 <Tooltip

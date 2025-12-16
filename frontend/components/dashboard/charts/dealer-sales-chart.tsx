@@ -4,16 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
 import { useGetTopDealersQuery } from "@/store/services/analyticsApi"
 
-// Blue gradient for dealer bars
+// Dealer ranking colors - top 1-2 darkest, then gradient
 const COLORS = [
-    "#1e3a8a", // Blue 900 - top dealer
-    "#1e40af", // Blue 800
-    "#1d4ed8", // Blue 700
-    "#2563eb", // Blue 600
-    "#3b82f6", // Blue 500
-    "#60a5fa", // Blue 400
-    "#93c5fd", // Blue 300
-    "#bfdbfe", // Blue 200
+    "#1F3C88", // Top 1 - darkest
+    "#1F3C88", // Top 2 - darkest
+    "#4C7DFF", // 3rd
+    "#78A6FF", // 4th
+    "#96B8FF", // 5th
+    "#B4CAFF", // 6th
+    "#C7DBFF", // 7th
+    "#DBEAFE", // 8th - lightest
 ]
 
 export function DealerSalesChart() {
@@ -66,6 +66,7 @@ export function DealerSalesChart() {
                                         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                                     }}
                                     labelStyle={{ color: "#111827", fontWeight: 600 }}
+                                    itemStyle={{ color: "#111827" }}
                                     formatter={(value: number, name: string, props: any) => {
                                         if (name === "total_sales") {
                                             return [`£${value.toLocaleString()}`, `Sales (${props.payload.total_cars} cars)`]

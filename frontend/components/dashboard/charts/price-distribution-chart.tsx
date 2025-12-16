@@ -4,19 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
 import { useGetPriceDistributionQuery } from "@/store/services/analyticsApi"
 
-// Blue gradient for price ranges
-const COLORS = [
-    "#dbeafe", // Blue 100 - lowest price
-    "#bfdbfe", // Blue 200
-    "#93c5fd", // Blue 300
-    "#60a5fa", // Blue 400
-    "#3b82f6", // Blue 500
-    "#2563eb", // Blue 600
-    "#1d4ed8", // Blue 700
-    "#1e40af", // Blue 800
-    "#1e3a8a", // Blue 900
-    "#172554", // Blue 950 - highest price
-]
+// Darker blue color for histogram bars
+const BAR_COLOR = "#4C7DFF"
 
 export function PriceDistributionChart() {
     const { data, isLoading, error } = useGetPriceDistributionQuery({ bins: 10 })
@@ -66,13 +55,10 @@ export function PriceDistributionChart() {
                                         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                                     }}
                                     labelStyle={{ color: "#111827", fontWeight: 600 }}
+                                    itemStyle={{ color: "#111827" }}
                                     formatter={(value: number) => [`${value.toLocaleString()} cars`, "Count"]}
                                 />
-                                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                                    {chartData.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Bar>
+                                <Bar dataKey="count" radius={[4, 4, 0, 0]} fill={BAR_COLOR} />
                             </BarChart>
                         </ResponsiveContainer>
                     )}

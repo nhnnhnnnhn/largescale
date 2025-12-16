@@ -4,12 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { useGetAccidentSeverityQuery } from "@/store/services/analyticsApi"
 
-// Blue-based colors for severity levels (darker = more severe)
+// Severity colors - darker for more severe
 const SEVERITY_COLORS = {
-    Minor: "#93c5fd",    // Blue 300 - lightest
-    Moderate: "#3b82f6", // Blue 500 - medium
-    Major: "#1e40af",    // Blue 800 - darkest
-    Severe: "#1e3a8a",   // Blue 900 - very severe
+    Minor: "#C7DBFF",    // Lightest
+    Moderate: "#78A6FF", // Medium light
+    Major: "#4C7DFF",    // Medium dark
+    Severe: "#1F3C88",   // Darkest
 }
 
 export function AccidentSeverityChart() {
@@ -70,6 +70,7 @@ export function AccidentSeverityChart() {
                                         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                                     }}
                                     labelStyle={{ color: "#111827", fontWeight: 600 }}
+                                    itemStyle={{ color: "#111827" }}
                                     formatter={(value: number) => [value.toLocaleString(), "Accidents"]}
                                 />
                                 <Bar

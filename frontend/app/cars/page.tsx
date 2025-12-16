@@ -267,22 +267,6 @@ export default function CarsPage() {
         setCurrentPage(1)
     }, [carIdSearch, selectedManufacturers, selectedFuelTypes, yearStart, yearEnd, priceRange, selectedDealerIds])
 
-
-
-    // Reset filters
-    const handleResetFilters = () => {
-        setCarIdSearch("")
-        setSelectedManufacturers([])
-        setSelectedFuelTypes([])
-        setYearStart("")
-        setYearEnd("")
-        setPriceRange([0, 100000])
-        setSelectedDealerIds([])
-        setAccidentSort(null)
-        setServiceSort(null)
-        setCurrentPage(1)
-    }
-
     // Toggle manufacturer in multi-select
     const toggleManufacturer = (manufacturer: string) => {
         setSelectedManufacturers(prev => {
@@ -477,30 +461,13 @@ export default function CarsPage() {
     }
 
     return (
-        <div className="h-screen bg-background flex flex-col overflow-hidden">
-            {/* Simple header with title and reset button */}
-            <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="flex h-16 items-center justify-between px-6">
-                    <div>
-                        <h1 className="text-lg font-semibold">Cars</h1>
-                        <p className="text-sm text-muted-foreground">Browse and explore vehicle inventory</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        {/* Active filters indicator */}
-                        {(carIdSearch || selectedManufacturers.length > 0 || selectedFuelTypes.length > 0 ||
-                            yearStart || yearEnd || priceRange[0] > 0 || priceRange[1] < 100000 ||
-                            selectedDealerIds.length > 0 || accidentSort || serviceSort) && (
-                                <Badge variant="secondary" className="text-xs">
-                                    Filters active
-                                </Badge>
-                            )}
-                        <Button variant="outline" size="sm" onClick={handleResetFilters}>
-                            <X className="h-4 w-4 mr-1" />
-                            Reset All
-                        </Button>
-                    </div>
+        <div className="min-h-screen bg-gray-50">
+            {/* Header - same height as sidebar header (h-16) */}
+            <div className="h-16 bg-white border-b border-gray-200 px-6 flex items-center">
+                <div>
+                    <h1 className="text-xl font-bold text-gray-900">Cars</h1>
                 </div>
-            </header>
+            </div>
 
             <div className="flex-1 p-6 overflow-hidden flex flex-col">
                 <Card className="bg-card border-border flex-1 flex flex-col overflow-hidden">
