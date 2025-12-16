@@ -1,14 +1,4 @@
--- =============================================================================
--- PostgreSQL Schema for CarSales Database
--- Column names match exactly with cleaned CSV files
--- =============================================================================
 
-DROP TABLE IF EXISTS accidents CASCADE;
-DROP TABLE IF EXISTS services CASCADE;
-DROP TABLE IF EXISTS cars CASCADE;
-DROP TABLE IF EXISTS dealers CASCADE;
-
--- DEALERS
 CREATE TABLE dealers (
     dealer_id VARCHAR(10) PRIMARY KEY,
     dealer_name VARCHAR(100),
@@ -17,7 +7,6 @@ CREATE TABLE dealers (
     longitude DECIMAL(10,6)
 );
 
--- CARS
 CREATE TABLE cars (
     car_id VARCHAR(10) PRIMARY KEY,
     manufacturer VARCHAR(50),
@@ -35,7 +24,6 @@ CREATE TABLE cars (
         ON DELETE SET NULL ON UPDATE CASCADE
 );
 
--- SERVICES
 CREATE TABLE services (
     service_id VARCHAR(10) PRIMARY KEY,
     car_id VARCHAR(10) NOT NULL,
@@ -48,7 +36,6 @@ CREATE TABLE services (
         ON DELETE CASCADE ON UPDATE CASCADE
 );
 
--- ACCIDENTS
 CREATE TABLE accidents (
     accident_id VARCHAR(10) PRIMARY KEY,
     car_id VARCHAR(10) NOT NULL,
@@ -62,7 +49,6 @@ CREATE TABLE accidents (
         ON DELETE CASCADE ON UPDATE CASCADE
 );
 
--- INDEXES
 CREATE INDEX idx_cars_dealer ON cars(dealer_id);
 CREATE INDEX idx_cars_manufacturer ON cars(manufacturer);
 CREATE INDEX idx_services_car ON services(car_id);

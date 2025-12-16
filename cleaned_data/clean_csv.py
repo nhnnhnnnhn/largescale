@@ -11,14 +11,14 @@ def clean_data(input_file, output_dir='./'):
     df = pd.read_csv(input_file)
     print(f"Total rows: {len(df)}")
     
-    # ========== 1. AGGREGATE FEATURES ==========
+    #1. AGGREGATE FEATURES
     print("\n1. Aggregating features...")
     car_features = df.groupby('CarID')['Features'].apply(
         lambda x: ', '.join(sorted(x.unique()))
     ).reset_index()
     car_features.columns = ['CarID', 'Features_Agg']
     
-    # ========== 2. CREATE CARS ==========
+    #2. CREATE CARS
     print("2. Creating cars...")
     cars_df = df.drop_duplicates(subset='CarID')[
         ['CarID', 'Manufacturer', 'Model', 'Engine size', 'Fuel_Type', 
@@ -28,7 +28,7 @@ def clean_data(input_file, output_dir='./'):
     cars_df = cars_df.merge(car_features, on='CarID', how='left')
     print(f"   Unique cars: {len(cars_df)}")
     
-    # ========== 3. CREATE DEALERS ==========
+    #3. CREATE DEALERS
     print("3. Creating dealers...")
     dealers_df = cars_df[['DealerName', 'DealerCity', 'Latitude', 'Longitude']].drop_duplicates()
     dealers_df = dealers_df.reset_index(drop=True)
@@ -42,7 +42,7 @@ def clean_data(input_file, output_dir='./'):
         how='left'
     )
     
-    # ========== 4. CREATE SERVICES ==========
+    #4. CREATE SERVICES
     print("4. Creating services...")
     services_df = df[df['ServiceID'].notna()][
         ['ServiceID', 'CarID', 'Date_of_Service', 'ServiceType', 'Cost_of_Service']
@@ -55,7 +55,7 @@ def clean_data(input_file, output_dir='./'):
     services_df = services_df[services_df['Date_of_Service'].notna()]
     print(f"   Unique services: {len(services_df)}")
     
-    # ========== 5. CREATE ACCIDENTS ==========
+    #5. CREATE ACCIDENTS
     print("5. Creating accidents...")
     accidents_df = df[df['AccidentID'].notna()][
         ['AccidentID', 'CarID', 'Date_of_Accident', 'Description', 'Cost_of_Repair', 'Severity']
@@ -68,7 +68,7 @@ def clean_data(input_file, output_dir='./'):
     accidents_df = accidents_df[accidents_df['Date_of_Accident'].notna()]
     print(f"   Unique accidents: {len(accidents_df)}")
     
-    # ========== 6. EXPORT CSVs ==========
+    #6. EXPORT CSVs
     print("\n6. Exporting CSV files...")
     
     # Dealers
