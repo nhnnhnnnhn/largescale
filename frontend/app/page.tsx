@@ -9,7 +9,7 @@ import { DealerSalesChart } from "@/components/dashboard/charts/dealer-sales-cha
 
 export default function DashboardPage() {
     return (
-        <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+        <div className="min-h-screen bg-gray-50 flex flex-col">
             {/* Header - fixed height */}
             <div className="h-16 bg-white border-b border-gray-200 px-6 flex items-center flex-shrink-0">
                 <div>
@@ -18,8 +18,8 @@ export default function DashboardPage() {
             </div>
 
             {/* Charts Grid - fills remaining space */}
-            <div className="flex-1 p-4 overflow-hidden">
-                <div className="grid grid-cols-3 grid-rows-2 gap-4 h-full">
+            <div className="flex-1 p-2 sm:p-4 overflow-y-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* Row 1 */}
                     <ManufacturerBarChart />
                     <FuelTypePieChart />
