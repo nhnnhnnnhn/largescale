@@ -12,14 +12,14 @@ def clean_data(input_file, output_dir='./'):
     print(f"Total rows: {len(df)}")
     
     #1. AGGREGATE FEATURES
-    print("\n1. Aggregating features...")
+    print("\n1. Aggregating features")
     car_features = df.groupby('CarID')['Features'].apply(
         lambda x: ', '.join(sorted(x.unique()))
     ).reset_index()
     car_features.columns = ['CarID', 'Features_Agg']
     
     #2. CREATE CARS
-    print("2. Creating cars...")
+    print("2. Creating cars")
     cars_df = df.drop_duplicates(subset='CarID')[
         ['CarID', 'Manufacturer', 'Model', 'Engine size', 'Fuel_Type', 
          'Year_of_Manufacturing', 'Mileage', 'Price', 
@@ -29,7 +29,7 @@ def clean_data(input_file, output_dir='./'):
     print(f"   Unique cars: {len(cars_df)}")
     
     #3. CREATE DEALERS
-    print("3. Creating dealers...")
+    print("3. Creating dealers")
     dealers_df = cars_df[['DealerName', 'DealerCity', 'Latitude', 'Longitude']].drop_duplicates()
     dealers_df = dealers_df.reset_index(drop=True)
     dealers_df['DealerID'] = 'D' + (dealers_df.index + 1).astype(str).str.zfill(5)
